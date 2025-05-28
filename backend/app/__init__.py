@@ -12,7 +12,7 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="Yapit Gateway",
+        title="Aleator API",
         version="0.1.0",
         default_response_class=ORJSONResponse,
         lifespan=lifespan,
@@ -24,8 +24,12 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    for r in routers:
-        app.include_router(r)
+    
+    # Include API routers
+    from app.api.v1 import auth, decisions
+    app.include_router(auth.router, prefix="/api/v1")
+    app.include_router(decisions.router, prefix="/api/v1")
+    
     return app
 
 

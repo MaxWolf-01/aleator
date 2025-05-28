@@ -18,12 +18,18 @@ dependencies = [
   "asyncpg~=0.30.0",
   "pydantic-settings~=2.9.1",
   "orjson~=3.10.16",
+  "pyjwt~=2.8.0",
+  "bcrypt~=4.1.2",
+  "python-multipart~=0.0.18",
 ]
 
 [project.optional-dependencies]
 
 test = [
   "pytest~=8.3.5",
+  "httpx~=0.28.1",
+  "pytest-asyncio~=0.25.0",
+  "aiosqlite~=0.20.0",
 ]
 
 [project.urls]
@@ -31,4 +37,9 @@ Homepage = "https://www.aleatoric.agency"
 Repository = "https://github.com/MaxWolf-01/aleator"
 Issues = "https://github.com/MaxWolf-01/aleator/issues"
 #Changelog = ""
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
 
