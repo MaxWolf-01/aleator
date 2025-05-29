@@ -1,17 +1,23 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useMutation } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import { Badge } from '@/components/ui/badge';
-import { apiClient } from '@/lib/api';
-import type { CreateBinaryDecisionForm } from '@/types';
-import { X, Dice1, Plus } from 'lucide-react';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useMutation } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
+import { apiClient } from "@/lib/api";
+import type { CreateBinaryDecisionForm } from "@/types";
+import { X, Dice1, Plus } from "lucide-react";
 
 interface CreateDecisionDialogProps {
   open: boolean;
@@ -20,13 +26,17 @@ interface CreateDecisionDialogProps {
 }
 
 const binaryDecisionSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(100, 'Title too long'),
+  title: z.string().min(1, "Title is required").max(100, "Title too long"),
   probability: z.number().min(1).max(99),
-  yes_text: z.string().min(1, 'Yes text is required').max(50, 'Text too long'),
-  no_text: z.string().min(1, 'No text is required').max(50, 'Text too long'),
+  yes_text: z.string().min(1, "Yes text is required").max(50, "Text too long"),
+  no_text: z.string().min(1, "No text is required").max(50, "Text too long"),
 });
 
-export function CreateDecisionDialog({ open, onOpenChange, onSuccess }: CreateDecisionDialogProps) {
+export function CreateDecisionDialog({
+  open,
+  onOpenChange,
+  onSuccess,
+}: CreateDecisionDialogProps) {
   const [probability, setProbability] = useState([67]);
 
   const {
@@ -38,8 +48,8 @@ export function CreateDecisionDialog({ open, onOpenChange, onSuccess }: CreateDe
     resolver: zodResolver(binaryDecisionSchema),
     defaultValues: {
       probability: 67,
-      yes_text: 'Yes',
-      no_text: 'No',
+      yes_text: "Yes",
+      no_text: "No",
     },
   });
 
@@ -47,7 +57,7 @@ export function CreateDecisionDialog({ open, onOpenChange, onSuccess }: CreateDe
     mutationFn: (data: CreateBinaryDecisionForm) =>
       apiClient.createDecision({
         title: data.title,
-        type: 'binary',
+        type: "binary",
         binary_data: {
           probability: probability[0],
           yes_text: data.yes_text,
@@ -80,9 +90,6 @@ export function CreateDecisionDialog({ open, onOpenChange, onSuccess }: CreateDe
                 <Dice1 className="w-5 h-5 text-primary" />
                 New Decision
               </CardTitle>
-              <CardDescription>
-                Create a new probability-based decision
-              </CardDescription>
             </div>
             <Button
               variant="ghost"
@@ -96,27 +103,28 @@ export function CreateDecisionDialog({ open, onOpenChange, onSuccess }: CreateDe
 
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Decision Type Selection */}
             <div className="space-y-3">
-              <Label>Decision Type</Label>
+              <Label>Type</Label>
               <div className="flex gap-2">
                 <Badge variant="default" className="cursor-pointer">
                   Yes/No Decision
                 </Badge>
-                <Badge variant="outline" className="cursor-not-allowed opacity-50">
+                <Badge
+                  variant="outline"
+                  className="cursor-not-allowed opacity-50"
+                >
                   Multi-choice (Coming Soon)
                 </Badge>
               </div>
             </div>
 
-            {/* Title */}
             <div className="space-y-2">
-              <Label htmlFor="title">Decision Title *</Label>
+              <Label htmlFor="title">Title *</Label>
               <Input
                 id="title"
-                placeholder="e.g., Have dessert tonight"
-                {...register('title')}
-                className={errors.title ? 'border-red-500' : ''}
+                placeholder="e.g., Eat meat today?"
+                {...register("title")}
+                className={errors.title ? "border-red-500" : ""}
               />
               {errors.title && (
                 <p className="text-sm text-red-600">{errors.title.message}</p>
@@ -127,7 +135,9 @@ export function CreateDecisionDialog({ open, onOpenChange, onSuccess }: CreateDe
             <div className="space-y-3">
               <Label className="flex items-center justify-between">
                 <span>Probability</span>
-                <span className="font-bold text-primary">{probability[0]}%</span>
+                <span className="font-bold text-primary">
+                  {probability[0]}%
+                </span>
               </Label>
               <Slider
                 value={probability}
@@ -138,8 +148,8 @@ export function CreateDecisionDialog({ open, onOpenChange, onSuccess }: CreateDe
                 className="cursor-pointer"
               />
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>1% - Rarely</span>
-                <span>99% - Almost always</span>
+                <span>1%</span>
+                <span>99%</span>
               </div>
             </div>
 
@@ -150,24 +160,28 @@ export function CreateDecisionDialog({ open, onOpenChange, onSuccess }: CreateDe
                 <Input
                   id="yes_text"
                   placeholder="Yes"
-                  {...register('yes_text')}
-                  className={errors.yes_text ? 'border-red-500' : ''}
+                  {...register("yes_text")}
+                  className={errors.yes_text ? "border-red-500" : ""}
                 />
                 {errors.yes_text && (
-                  <p className="text-sm text-red-600">{errors.yes_text.message}</p>
+                  <p className="text-sm text-red-600">
+                    {errors.yes_text.message}
+                  </p>
                 )}
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="no_text">No Option *</Label>
                 <Input
                   id="no_text"
                   placeholder="No"
-                  {...register('no_text')}
-                  className={errors.no_text ? 'border-red-500' : ''}
+                  {...register("no_text")}
+                  className={errors.no_text ? "border-red-500" : ""}
                 />
                 {errors.no_text && (
-                  <p className="text-sm text-red-600">{errors.no_text.message}</p>
+                  <p className="text-sm text-red-600">
+                    {errors.no_text.message}
+                  </p>
                 )}
               </div>
             </div>
@@ -180,7 +194,8 @@ export function CreateDecisionDialog({ open, onOpenChange, onSuccess }: CreateDe
               <div className="text-sm text-forest-700">
                 <p className="font-medium">Decision: Your title here...</p>
                 <p>
-                  {probability[0]}% chance of "Yes" → {100 - probability[0]}% chance of "No"
+                  {probability[0]}% chance of "Yes" → {100 - probability[0]}%
+                  chance of "No"
                 </p>
               </div>
             </div>
@@ -219,3 +234,4 @@ export function CreateDecisionDialog({ open, onOpenChange, onSuccess }: CreateDe
     </div>
   );
 }
+
