@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from enum import StrEnum
+from typing import Optional
 
 from pydantic import EmailStr
 from sqlalchemy import Column, DateTime
@@ -16,13 +17,11 @@ class User(SQLModel, table=True):
     email: EmailStr = Field(unique=True, index=True)
     hashed_password: str
     created_at: datetime = Field(
-        sa_column=Column(
-            DateTime(timezone=True),
-            default_factory=lambda: datetime.now(timezone.utc),
-            nullable=False,
-        )
+        default_factory=lambda: datetime.now(timezone.utc), sa_column=Column(DateTime(timezone=True), nullable=False)
     )
     is_active: bool = Field(default=True)
+    is_guest: bool = Field(default=False)
+    guest_token: str | None = Field(default=None, unique=True, index=True)
 
     decisions: list["Decision"] = Relationship(back_populates="user")
 
@@ -33,24 +32,16 @@ class Decision(SQLModel, table=True):
     title: str = Field(max_length=200)
     type: DecisionType
     created_at: datetime = Field(
-        sa_column=Column(
-            DateTime(timezone=True),
-            default_factory=lambda: datetime.now(timezone.utc),
-            nullable=False,
-        )
+        default_factory=lambda: datetime.now(timezone.utc), sa_column=Column(DateTime(timezone=True), nullable=False)
     )
     updated_at: datetime = Field(
-        sa_column=Column(
-            DateTime(timezone=True),
-            default_factory=lambda: datetime.now(timezone.utc),
-            onupdate=lambda: datetime.now(timezone.utc),
-            nullable=False,
-        )
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), nullable=False, onupdate=lambda: datetime.now(timezone.utc)),
     )
 
     user: User = Relationship(back_populates="decisions")
-    binary_decision: "BinaryDecision | None" = Relationship(back_populates="decision")
-    multi_choice_decision: "MultiChoiceDecision | None" = Relationship(back_populates="decision")
+    binary_decision: Optional["BinaryDecision"] = Relationship(back_populates="decision")
+    multi_choice_decision: Optional["MultiChoiceDecision"] = Relationship(back_populates="decision")
     rolls: list["Roll"] = Relationship(back_populates="decision")
     probability_history: list["ProbabilityHistory"] = Relationship(back_populates="decision")
 
@@ -86,11 +77,7 @@ class Roll(SQLModel, table=True):
     result: str  # For binary: "yes"/"no", for multi: choice name
     followed: bool | None = Field(default=None)  # None means not yet confirmed
     created_at: datetime = Field(
-        sa_column=Column(
-            DateTime(timezone=True),
-            default_factory=lambda: datetime.now(timezone.utc),
-            nullable=False,
-        )
+        default_factory=lambda: datetime.now(timezone.utc), sa_column=Column(DateTime(timezone=True), nullable=False)
     )
 
     decision: Decision = Relationship(back_populates="rolls")
@@ -101,11 +88,7 @@ class ProbabilityHistory(SQLModel, table=True):
     decision_id: int = Field(foreign_key="decision.id")
     probability: int = Field(ge=1, le=99)
     changed_at: datetime = Field(
-        sa_column=Column(
-            DateTime(timezone=True),
-            default_factory=lambda: datetime.now(timezone.utc),
-            nullable=False,
-        )
+        default_factory=lambda: datetime.now(timezone.utc), sa_column=Column(DateTime(timezone=True), nullable=False)
     )
 
     decision: Decision = Relationship(back_populates="probability_history")

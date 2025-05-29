@@ -26,7 +26,7 @@ const registerSchema = z.object({
 type RegisterForm = z.infer<typeof registerSchema>;
 
 export function RegisterPage() {
-  const { register: registerUser, isAuthenticated } = useAuth();
+  const { register: registerUser, isAuthenticated, isGuest, convertGuestToUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -39,7 +39,7 @@ export function RegisterPage() {
     resolver: zodResolver(registerSchema),
   });
 
-  if (isAuthenticated) {
+  if (isAuthenticated && !isGuest) {
     return <Navigate to="/" replace />;
   }
 
@@ -56,10 +56,16 @@ export function RegisterPage() {
     try {
       setIsLoading(true);
       setError(null);
-      await registerUser({
-        email: data.email,
-        password: data.password,
-      });
+      
+      // If guest, convert to user. Otherwise, register new user
+      if (isGuest) {
+        await convertGuestToUser(data.email, data.password);
+      } else {
+        await registerUser({
+          email: data.email,
+          password: data.password,
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
@@ -84,9 +90,12 @@ export function RegisterPage() {
         {/* Registration Form */}
         <Card className="border-forest-200 shadow-ghibli-lg">
           <CardHeader>
-            <CardTitle>Create Account</CardTitle>
+            <CardTitle>{isGuest ? 'Save Your Progress' : 'Create Account'}</CardTitle>
             <CardDescription>
-              Start making better decisions through probability
+              {isGuest 
+                ? 'Convert your guest account to save decisions across devices' 
+                : 'Start making better decisions through probability'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -95,6 +104,13 @@ export function RegisterPage() {
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 text-red-700 border border-red-200">
                   <AlertCircle className="w-4 h-4" />
                   <span className="text-sm">{error}</span>
+                </div>
+              )}
+              
+              {isGuest && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/10 text-primary-foreground border border-primary/20">
+                  <Sparkles className="w-4 h-4 mt-0.5" />
+                  <span className="text-sm">All your current decisions will be saved to your new account!</span>
                 </div>
               )}
 

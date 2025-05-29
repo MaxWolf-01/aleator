@@ -4,6 +4,7 @@ export interface User {
   email: string;
   created_at: string;
   is_active: boolean;
+  is_guest: boolean;
 }
 
 export interface AuthTokens {

@@ -28,11 +28,7 @@ function App() {
               <Route path="/register" element={<RegisterPage />} />
               <Route 
                 path="/" 
-                element={
-                  <ProtectedRoute>
-                    <DashboardPage />
-                  </ProtectedRoute>
-                } 
+                element={<DashboardPage />} 
               />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

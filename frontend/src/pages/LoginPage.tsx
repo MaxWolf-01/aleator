@@ -18,7 +18,7 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 export function LoginPage() {
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, isGuest } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -30,7 +30,7 @@ export function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
-  if (isAuthenticated) {
+  if (isAuthenticated && !isGuest) {
     return <Navigate to="/" replace />;
   }
 

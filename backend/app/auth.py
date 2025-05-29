@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -43,6 +44,33 @@ async def get_user_by_email(email: str, session: AsyncSession) -> Optional[User]
     return result.first()
 
 
+async def get_user_by_guest_token(guest_token: str, session: AsyncSession) -> Optional[User]:
+    """Get a user by guest token."""
+    statement = select(User).where(User.guest_token == guest_token)
+    result = await session.exec(statement)
+    return result.first()
+
+
+async def create_guest_user(session: AsyncSession) -> User:
+    """Create a new guest user with a unique token."""
+    # Generate a unique guest token
+    guest_token = secrets.token_urlsafe(32)
+
+    # Create a dummy email and password for the guest user
+    guest_email = f"guest_{guest_token[:8]}@aleatoric.agency"
+    dummy_password = secrets.token_urlsafe(16)
+
+    guest_user = User(
+        email=guest_email, hashed_password=get_password_hash(dummy_password), is_guest=True, guest_token=guest_token
+    )
+
+    session.add(guest_user)
+    await session.commit()
+    await session.refresh(guest_user)
+
+    return guest_user
+
+
 async def authenticate_user(email: str, password: str, session: AsyncSession) -> Optional[User]:
     """Authenticate a user with email and password."""
     user = await get_user_by_email(email, session)
@@ -58,26 +86,34 @@ async def get_current_user(
     session: AsyncSession = Depends(get_db_session),
     settings: Settings = Depends(get_settings),
 ) -> User:
-    """Get the current user from JWT token."""
+    """Get the current user from JWT token or guest token."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
+    token = credentials.credentials
+
+    # First, try to decode as JWT token
     try:
-        payload = jwt.decode(credentials.credentials, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception
+
+        user = await get_user_by_email(email, session)
+        if user is None:
+            raise credentials_exception
+
+        return user
     except jwt.PyJWTError:
-        raise credentials_exception
+        # If JWT decode fails, try as guest token
+        user = await get_user_by_guest_token(token, session)
+        if user is None:
+            raise credentials_exception
 
-    user = await get_user_by_email(email, session)
-    if user is None:
-        raise credentials_exception
-
-    return user
+        return user
 
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:

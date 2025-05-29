@@ -285,6 +285,18 @@ Focus on creating a cozy, delightful experience that users will actually want to
 
 ## Important Coding Standards
 
+Always make sure to run tests where applicable, especially before committing code.
+Gather as much relevant context as possible before implementing features. Extensive docs of the libraries used can be found in the external-docs directory. If any information is missing, ABORT and IMMEDIATELY ASK for clarification before proceeding.
+Extensive documentation is not required, but inline comments should be used to clarify complex logic.
+
+### Working with Backend
+**CRITICAL**: When working with the backend code:
+1. Always navigate to the backend directory: `cd /home/max/repos/aleator/backend`
+2. Always activate the virtual environment: `source .venv/bin/activate`
+3. If .venv doesn't exist, create it with uv: `uv venv .venv`
+4. Never use the system Python or global pip installations
+5. All Python commands must be run with the activated venv
+
 ### Datetime Handling
 NEVER use `datetime.utcnow()` - it's deprecated! Always use timezone-aware datetime objects:
 ```python

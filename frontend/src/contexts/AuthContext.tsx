@@ -9,6 +9,9 @@ interface AuthContextType {
   register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
+  isGuest: boolean;
+  createGuestSession: () => Promise<void>;
+  convertGuestToUser: (email: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,6 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const isAuthenticated = !!user;
+  const isGuest = user?.is_guest ?? false;
 
   useEffect(() => {
     // Check if user is already logged in on app start
@@ -28,6 +32,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         // User not authenticated or token expired
         apiClient.clearAuthToken();
+        
+        // Create a guest session automatically
+        try {
+          const { guest_token } = await apiClient.createGuestSession();
+          apiClient.setAuthToken(guest_token);
+          
+          const guestUser = await apiClient.getCurrentUser();
+          setUser(guestUser);
+        } catch (guestError) {
+          console.error('Failed to create guest session:', guestError);
+        }
       } finally {
         setLoading(false);
       }
@@ -72,6 +87,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const createGuestSession = async () => {
+    try {
+      const { guest_token } = await apiClient.createGuestSession();
+      apiClient.setAuthToken(guest_token);
+      
+      const currentUser = await apiClient.getCurrentUser();
+      setUser(currentUser);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const convertGuestToUser = async (email: string, password: string) => {
+    try {
+      const tokens = await apiClient.convertGuestToUser(email, password);
+      apiClient.setAuthToken(tokens.access_token);
+      
+      const currentUser = await apiClient.getCurrentUser();
+      setUser(currentUser);
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     loading,
@@ -79,6 +118,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     register,
     logout,
     isAuthenticated,
+    isGuest,
+    createGuestSession,
+    convertGuestToUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

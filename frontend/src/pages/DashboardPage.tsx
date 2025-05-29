@@ -6,13 +6,15 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/lib/api';
 import type { DecisionWithDetails } from '@/types';
-import { Plus, Sparkles, LogOut, BarChart3, Settings } from 'lucide-react';
+import { Plus, Sparkles, LogOut, BarChart3, Settings, UserPlus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { DecisionCard } from '@/components/DecisionCard';
 import { CreateDecisionDialog } from '@/components/CreateDecisionDialog';
 import { AnalyticsPage } from '@/pages/AnalyticsPage';
 
 export function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, isGuest } = useAuth();
+  const navigate = useNavigate();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
 
@@ -80,6 +82,33 @@ export function DashboardPage() {
             Ready to make some mindful decisions? Your probability-guided choices await.
           </p>
         </div>
+
+        {/* Guest Prompt */}
+        {isGuest && (
+          <Card className="mb-8 border-primary/20 bg-primary/5">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <UserPlus className="w-8 h-8 text-primary mt-1" />
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold mb-2">Save Your Progress</h3>
+                  <p className="text-gray-600 mb-4">
+                    You're currently using a guest account. Create a free account to save your decisions 
+                    across devices and unlock additional features.
+                  </p>
+                  <div className="flex gap-3">
+                    <Button onClick={() => navigate('/register')} size="sm">
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Create Account
+                    </Button>
+                    <Button onClick={() => navigate('/login')} variant="outline" size="sm">
+                      Sign In
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Quick Actions */}
         <div className="mb-8">

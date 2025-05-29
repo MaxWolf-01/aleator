@@ -4,13 +4,14 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.auth import (
     authenticate_user,
     create_access_token,
+    create_guest_user,
     get_current_active_user,
     get_password_hash,
     get_user_by_email,
 )
 from app.db import get_db_session
 from app.models import User
-from app.schemas import Token, UserLogin, UserRegister, UserResponse
+from app.schemas import GuestTokenResponse, GuestUserConvert, Token, UserLogin, UserRegister, UserResponse
 from app.settings import Settings, get_settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -49,6 +50,44 @@ async def login(
         )
 
     access_token = create_access_token(data={"sub": user.email}, settings=settings)
+
+    return Token(access_token=access_token)
+
+
+@router.post("/guest", response_model=GuestTokenResponse, status_code=status.HTTP_201_CREATED)
+async def create_guest_session(session: AsyncSession = Depends(get_db_session)):
+    """Create a new guest session."""
+    guest_user = await create_guest_user(session)
+    return GuestTokenResponse(guest_token=guest_user.guest_token)
+
+
+@router.post("/convert", response_model=Token)
+async def convert_guest_to_user(
+    convert_data: GuestUserConvert,
+    current_user: User = Depends(get_current_active_user),
+    session: AsyncSession = Depends(get_db_session),
+    settings: Settings = Depends(get_settings),
+):
+    """Convert a guest user to a registered user."""
+    if not current_user.is_guest:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User is not a guest")
+
+    # Check if email already exists
+    existing_user = await get_user_by_email(convert_data.email, session)
+    if existing_user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
+
+    # Update the guest user
+    current_user.email = convert_data.email
+    current_user.hashed_password = get_password_hash(convert_data.password)
+    current_user.is_guest = False
+    current_user.guest_token = None  # Clear the guest token
+
+    await session.commit()
+    await session.refresh(current_user)
+
+    # Create a new JWT token with the updated email
+    access_token = create_access_token(data={"sub": current_user.email}, settings=settings)
 
     return Token(access_token=access_token)
 

@@ -12,9 +12,18 @@ class UserRegister(BaseModel):
     password: str = Field(min_length=8, max_length=100)
 
 
+class GuestUserConvert(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=100)
+
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+
+class GuestTokenResponse(BaseModel):
+    guest_token: str
 
 
 class Token(BaseModel):
@@ -27,6 +36,7 @@ class UserResponse(BaseModel):
     email: EmailStr
     created_at: datetime
     is_active: bool
+    is_guest: bool
 
 
 # Decision schemas

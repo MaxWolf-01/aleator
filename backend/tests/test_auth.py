@@ -115,3 +115,44 @@ class TestAuthEndpoints:
         response = await client.get("/api/v1/auth/me", headers=headers)
 
         assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_create_guest_session(self, client):
+        """Test guest session creation."""
+        response = await client.post("/api/v1/auth/guest")
+        assert response.status_code == 201
+        data = response.json()
+        assert "guest_token" in data
+        assert len(data["guest_token"]) > 0
+
+        # Test that guest token works for authentication
+        guest_token = data["guest_token"]
+        response = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {guest_token}"})
+        assert response.status_code == 200
+        user_data = response.json()
+        assert user_data["is_guest"] is True
+        assert "guest_" in user_data["email"]
+
+    @pytest.mark.asyncio
+    async def test_convert_guest_to_user(self, client):
+        """Test converting a guest user to a registered user."""
+        # First create a guest session
+        response = await client.post("/api/v1/auth/guest")
+        assert response.status_code == 201
+        guest_token = response.json()["guest_token"]
+
+        # Convert guest to user
+        convert_data = {"email": "converted@example.com", "password": "TestPassword123"}
+        response = await client.post(
+            "/api/v1/auth/convert", json=convert_data, headers={"Authorization": f"Bearer {guest_token}"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "access_token" in data
+
+        # Verify the user is no longer a guest
+        response = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {data['access_token']}"})
+        assert response.status_code == 200
+        user_data = response.json()
+        assert user_data["is_guest"] is False
+        assert user_data["email"] == "converted@example.com"

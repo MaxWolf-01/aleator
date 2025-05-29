@@ -91,6 +91,19 @@ class ApiClient {
     return this.request<User>('/api/v1/auth/me');
   }
 
+  async createGuestSession(): Promise<{ guest_token: string }> {
+    return this.request<{ guest_token: string }>('/api/v1/auth/guest', {
+      method: 'POST',
+    });
+  }
+
+  async convertGuestToUser(email: string, password: string): Promise<AuthTokens> {
+    return this.request<AuthTokens>('/api/v1/auth/convert', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
   async logout(): Promise<void> {
     await this.request<void>('/api/v1/auth/logout', {
       method: 'POST',
