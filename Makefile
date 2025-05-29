@@ -7,7 +7,7 @@ help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # Development commands
-dev: down ## Start full development environment (backend + database + frontend dev server)
+dev: ## Start full development environment (backend + database + frontend dev server)
 	@echo "🚀 Starting Aleator development environment..."
 	@echo "📊 Backend API: http://localhost:8000"
 	@echo "🎨 Frontend: http://localhost:5173"
@@ -37,21 +37,25 @@ up: ## Start production environment
 	@echo "🌐 Frontend: http://localhost:3000"
 	@echo "📊 Backend API: http://localhost:8000"
 
-down: ## Stop all services
-	@echo "🛑 Stopping all services..."
-	docker compose -f docker-compose.dev.yml down 2>/dev/null || true
-	docker compose down 2>/dev/null || true
-	@echo "✅ All services stopped"
+down: ## Stop all services and remove volumes
+	@echo "🛑 Stopping all services and removing volumes..."
+	docker compose -f docker-compose.dev.yml down -v 2>/dev/null || true
+	docker compose down -v 2>/dev/null || true
+	@echo "✅ All services stopped and volumes removed"
 
 # Database commands
 db: ## Connect to database (development)
 	@echo "🗄️  Connecting to development database..."
 	docker compose -f docker-compose.dev.yml exec postgres psql -U aleator -d aleator_dev
 
-db-reset: ## Reset development database
+db-reset: ## Reset development database (removes all data)
 	@echo "⚠️  Resetting development database..."
-	docker compose -f docker-compose.dev.yml down -v postgres
+	docker compose -f docker-compose.dev.yml stop backend
+	docker compose -f docker-compose.dev.yml rm -f postgres
 	docker compose -f docker-compose.dev.yml up -d postgres
+	@echo "⏳ Waiting for database to be ready..."
+	@sleep 3
+	docker compose -f docker-compose.dev.yml up -d backend
 	@echo "✅ Database reset complete"
 
 migrate: ## Run database migrations

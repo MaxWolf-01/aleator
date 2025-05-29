@@ -151,6 +151,11 @@ class ApiClient {
   async getDecisionAnalytics(id: string) {
     return this.request(`/api/v1/analytics/decisions/${id}`);
   }
+
+  // User endpoints
+  async exportData() {
+    return this.request('/api/v1/user/export');
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

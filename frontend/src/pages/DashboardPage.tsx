@@ -1,22 +1,27 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/lib/api';
 import type { DecisionWithDetails } from '@/types';
-import { Plus, Sparkles, LogOut, BarChart3, Settings, UserPlus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Plus, Dice1, LogOut, User } from 'lucide-react';
 import { DecisionCard } from '@/components/DecisionCard';
 import { CreateDecisionDialog } from '@/components/CreateDecisionDialog';
-import { AnalyticsPage } from '@/pages/AnalyticsPage';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 
 export function DashboardPage() {
   const { user, logout, isGuest } = useAuth();
   const navigate = useNavigate();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(false);
 
   const { data: decisions = [], isLoading, refetch } = useQuery<DecisionWithDetails[]>({
     queryKey: ['decisions'],
@@ -28,160 +33,167 @@ export function DashboardPage() {
     setShowCreateDialog(false);
   };
 
-  if (showAnalytics) {
-    return <AnalyticsPage onBack={() => setShowAnalytics(false)} />;
-  }
+  const handleExportData = async () => {
+    try {
+      const response = await apiClient.exportData();
+      const blob = new Blob([JSON.stringify(response, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `aleator-data-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export failed:', error);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-ghibli-forest">
-      {/* Header */}
-      <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-10 shadow-ghibli">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+    <div className="matsu-app relative">
+      <div className="texture"></div>
+      
+      <div className="relative z-10 p-4 md:p-6 max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-6 md:mb-8">
+          <div className="flex items-start justify-between gap-4 mb-2">
             <div className="flex items-center gap-3">
-              <Sparkles className="w-8 h-8 text-primary animate-sparkle" />
-              <h1 className="text-2xl font-bold text-primary font-handwritten">Aleator</h1>
+              <Dice1 className="w-6 h-6 md:w-8 md:h-8 text-[oklch(0.71_0.097_111.7)]" />
+              <h1 className="text-2xl md:text-3xl font-bold">Aleator</h1>
             </div>
-            
-            <div className="flex items-center gap-4">
-              <Badge variant="secondary" className="hidden sm:inline-flex">
-                {user?.email}
-              </Badge>
-              
+            <div className="flex items-center gap-2">
               <Button 
-                variant="outline" 
+                onClick={() => setShowCreateDialog(true)}
+                className="matsu-button shrink-0"
                 size="sm"
-                onClick={() => setShowAnalytics(true)}
               >
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Analytics
+                <Plus className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">New Decision</span>
               </Button>
               
-              <Button variant="outline" size="sm">
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
-              </Button>
-              
-              <Button variant="outline" size="sm" onClick={logout}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
+              {/* Account Sheet */}
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="matsu-button"
+                  >
+                    <User className="w-4 h-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="bg-[oklch(0.94_0.035_83.6)] border-[oklch(0.74_0.063_80.8)]">
+                  <SheetHeader>
+                    <SheetTitle>Account</SheetTitle>
+                    <SheetDescription>
+                      Manage your account and data
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="mt-6 space-y-6">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Signed in as</p>
+                      <p className="font-medium">{user?.email}</p>
+                      {isGuest && (
+                        <Badge variant="secondary" className="mt-2">Guest Account</Badge>
+                      )}
+                    </div>
+                    
+                    {isGuest && (
+                      <div className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                        <p className="text-sm">
+                          Create an account to save your decisions across devices.
+                        </p>
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={() => navigate('/register')} 
+                            size="sm"
+                            className="flex-1"
+                          >
+                            Create Account
+                          </Button>
+                          <Button 
+                            onClick={() => navigate('/login')} 
+                            variant="outline" 
+                            size="sm"
+                            className="flex-1"
+                          >
+                            Sign In
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="space-y-3">
+                      <Button 
+                        onClick={handleExportData}
+                        variant="outline"
+                        className="w-full justify-start"
+                      >
+                        Export Data
+                      </Button>
+                      
+                      <Button 
+                        onClick={logout}
+                        variant="outline"
+                        className="w-full justify-start text-red-600 hover:text-red-700"
+                      >
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Sign Out
+                      </Button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
           </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back! 🌟
-          </h2>
-          <p className="text-gray-600">
-            Ready to make some mindful decisions? Your probability-guided choices await.
+          <p className="text-[oklch(0.51_0.077_78.9)] text-base md:text-lg">
+            Make moderation easier with mindful randomness
           </p>
         </div>
 
-        {/* Guest Prompt */}
-        {isGuest && (
-          <Card className="mb-8 border-primary/20 bg-primary/5">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <UserPlus className="w-8 h-8 text-primary mt-1" />
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold mb-2">Save Your Progress</h3>
-                  <p className="text-gray-600 mb-4">
-                    You're currently using a guest account. Create a free account to save your decisions 
-                    across devices and unlock additional features.
-                  </p>
-                  <div className="flex gap-3">
-                    <Button onClick={() => navigate('/register')} size="sm">
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Create Account
-                    </Button>
-                    <Button onClick={() => navigate('/login')} variant="outline" size="sm">
-                      Sign In
-                    </Button>
-                  </div>
+        {/* Decision Cards */}
+        <div className="grid gap-6 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
+          {isLoading ? (
+            // Loading skeleton
+            [...Array(3)].map((_, i) => (
+              <div key={i} className="matsu-card h-96 animate-pulse">
+                <div className="p-6">
+                  <div className="h-6 bg-[oklch(0.88_0.035_83.6)] rounded w-3/4 mb-4"></div>
+                  <div className="h-4 bg-[oklch(0.88_0.035_83.6)] rounded w-1/2 mb-6"></div>
+                  <div className="h-32 bg-[oklch(0.88_0.035_83.6)] rounded mb-4"></div>
+                  <div className="h-12 bg-[oklch(0.88_0.035_83.6)] rounded"></div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Quick Actions */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button 
-              onClick={() => setShowCreateDialog(true)}
-              className="flex-1 sm:flex-none"
-              size="lg"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              New Decision
-            </Button>
-            
-            <Card className="flex-1 sm:max-w-sm">
-              <CardContent className="flex items-center justify-between p-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Active Decisions</p>
-                  <p className="text-2xl font-bold">{decisions.length}</p>
-                </div>
-                <Sparkles className="w-8 h-8 text-primary animate-float" />
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Decisions Grid */}
-        <div className="space-y-6">
-          <h3 className="text-xl font-semibold text-gray-900">Your Decisions</h3>
-          
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardHeader>
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-8 bg-gray-200 rounded mb-4"></div>
-                    <div className="h-10 bg-gray-200 rounded"></div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            ))
           ) : decisions.length === 0 ? (
-            <Card className="text-center py-12">
-              <CardContent>
-                <Sparkles className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  No decisions yet
-                </h3>
-                <p className="text-gray-600 mb-6">
+            // Empty state
+            <div className="col-span-full">
+              <div className="matsu-card text-center py-12 px-6">
+                <Dice1 className="w-16 h-16 text-[oklch(0.71_0.097_111.7)] mx-auto mb-4 opacity-50" />
+                <h3 className="text-xl font-bold mb-2">No decisions yet</h3>
+                <p className="text-[oklch(0.51_0.077_74.3)] mb-6">
                   Create your first decision to start making choices with mindful randomness.
                 </p>
-                <Button onClick={() => setShowCreateDialog(true)}>
+                <Button 
+                  onClick={() => setShowCreateDialog(true)}
+                  className="matsu-button"
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Create First Decision
                 </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {decisions.map((decision: DecisionWithDetails) => (
-                <DecisionCard 
-                  key={decision.id} 
-                  decision={decision}
-                  onUpdate={refetch}
-                />
-              ))}
+              </div>
             </div>
+          ) : (
+            // Decision cards
+            decisions.map((decision: DecisionWithDetails) => (
+              <DecisionCard 
+                key={decision.id} 
+                decision={decision}
+                onUpdate={refetch}
+              />
+            ))
           )}
         </div>
-      </main>
+      </div>
 
       {/* Create Decision Dialog */}
       <CreateDecisionDialog

@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
 import type { DecisionWithDetails, Roll } from '@/types';
 import { apiClient } from '@/lib/api';
-import { Dice1, Dice2, Sparkles, Check, X, Clock } from 'lucide-react';
+import { 
+  Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, 
+  Plus, Minus, BarChart3, Edit2, Trash2, 
+  CheckCircle, XCircle
+} from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Area } from 'recharts';
 
 interface DecisionCardProps {
   decision: DecisionWithDetails;
@@ -16,19 +19,14 @@ interface DecisionCardProps {
 
 export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
   const [pendingRoll, setPendingRoll] = useState<Roll | null>(null);
-  const [isRolling, setIsRolling] = useState(false);
-  const [probability, setProbability] = useState([
+  const [localProbability, setLocalProbability] = useState(
     decision.binary_decision?.probability || 50
-  ]);
+  );
 
   const rollMutation = useMutation<Roll, Error, void>({
     mutationFn: () => apiClient.rollDecision(decision.id) as Promise<Roll>,
     onSuccess: (roll: Roll) => {
       setPendingRoll(roll);
-      setIsRolling(false);
-    },
-    onError: () => {
-      setIsRolling(false);
     },
   });
 
@@ -50,175 +48,271 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
   });
 
   const handleRoll = () => {
-    setIsRolling(true);
-    // Add dramatic pause for rolling animation
-    setTimeout(() => {
-      rollMutation.mutate();
-    }, 1500);
+    rollMutation.mutate();
   };
 
   const handleConfirm = (followed: boolean) => {
     confirmMutation.mutate(followed);
   };
 
-  const handleProbabilityChange = (newValue: number[]) => {
-    setProbability(newValue);
-    updateProbabilityMutation.mutate(newValue[0]);
+  const adjustProbability = (change: number) => {
+    const newProb = Math.max(1, Math.min(99, localProbability + change));
+    setLocalProbability(newProb);
+    updateProbabilityMutation.mutate(newProb);
   };
 
-  const getResultDisplay = () => {
-    if (!pendingRoll) return null;
-    
-    const isYes = pendingRoll.result === 'yes';
-    const yesText = decision.binary_decision?.yes_text || 'Yes';
-    const noText = decision.binary_decision?.no_text || 'No';
-    
-    return (
-      <div className={`p-4 rounded-lg text-center font-medium border transition-all ${
-        isYes 
-          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-emerald-100 shadow-lg' 
-          : 'bg-orange-50 text-orange-700 border-orange-200 shadow-orange-100 shadow-lg'
-      }`}>
-        <div className="text-2xl mb-2">
-          {isYes ? '🎉' : '🌙'}
-        </div>
-        <div className="font-bold text-lg">
-          {isYes ? yesText : noText}
-        </div>
-        <p className="text-sm mt-1 opacity-80">
-          {isYes ? 'Go for it!' : 'Maybe next time'}
-        </p>
-      </div>
-    );
+  const getDiceIcon = (probability: number) => {
+    const iconClass = "w-8 h-8";
+    if (probability <= 16) return <Dice1 className={iconClass} />;
+    if (probability <= 33) return <Dice2 className={iconClass} />;
+    if (probability <= 50) return <Dice3 className={iconClass} />;
+    if (probability <= 66) return <Dice4 className={iconClass} />;
+    if (probability <= 83) return <Dice5 className={iconClass} />;
+    return <Dice6 className={iconClass} />;
   };
 
-  const getRollingDisplay = () => (
-    <div className="p-4 rounded-lg text-center bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200">
-      <div className="flex justify-center mb-3">
-        <div className="animate-bounce">
-          <Dice2 className="w-8 h-8 text-purple-600 animate-spin" />
-        </div>
-      </div>
-      <p className="font-medium text-purple-700">Rolling the dice...</p>
-      <div className="flex justify-center mt-2">
-        <div className="flex space-x-1">
-          <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-          <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse delay-75"></div>
-          <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse delay-150"></div>
-        </div>
-      </div>
-    </div>
-  );
+  // Mock history data for now - will be replaced with real data
+  const mockHistory = [
+    { decision: "#1", probability: 80, compliance: 85 },
+    { decision: "#2", probability: 75, compliance: 87 },
+    { decision: "#3", probability: 70, compliance: 91 },
+    { decision: "#4", probability: localProbability, compliance: 89 },
+  ];
+
+  // Calculate stats
+  const totalRolls = decision.rolls?.length || 0;
+  const followedCount = decision.rolls?.filter(r => r.followed).length || 0;
+  const complianceRate = totalRolls > 0 ? Math.round((followedCount / totalRolls) * 100) : 0;
 
   return (
-    <Card className="hover:shadow-ghibli-lg transition-all duration-300 border-forest-100 hover:border-forest-200">
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Dice1 className="w-5 h-5 text-primary" />
-              {decision.title}
-            </CardTitle>
-            <CardDescription className="mt-1">
-              {decision.binary_decision?.yes_text && decision.binary_decision?.no_text 
-                ? `${decision.binary_decision.yes_text} or ${decision.binary_decision.no_text}`
-                : 'Binary decision'
-              }
-            </CardDescription>
-          </div>
-          <Badge variant="secondary" className="ml-2">
-            {decision.type === 'binary' ? 'Yes/No' : 'Multi-choice'}
-          </Badge>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {/* Rolling Animation or Result */}
-        {isRolling && getRollingDisplay()}
-        {pendingRoll && !isRolling && getResultDisplay()}
-        
-        {/* Follow-through Confirmation */}
-        {pendingRoll && !isRolling && (
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Did you follow through?</Label>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleConfirm(true)}
-                disabled={confirmMutation.isPending}
-                className="flex-1 border-forest-200 hover:bg-forest-50"
-              >
-                <Check className="w-4 h-4 mr-2" />
-                Yes, I did
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleConfirm(false)}
-                disabled={confirmMutation.isPending}
-                className="flex-1 border-honey-200 hover:bg-honey-50"
-              >
-                <X className="w-4 h-4 mr-2" />
-                No, I didn't
-              </Button>
-            </div>
-          </div>
-        )}
-        
-        {/* Probability Slider - only show when not rolling or pending */}
-        {!isRolling && !pendingRoll && decision.type === 'binary' && (
-          <div className="space-y-3">
-            <Label className="flex items-center justify-between">
-              <span>Probability</span>
-              <span className="font-bold text-primary">{probability[0]}%</span>
-            </Label>
-            <Slider
-              value={probability}
-              onValueChange={handleProbabilityChange}
-              max={99}
-              min={1}
-              step={1}
-              className="cursor-pointer"
-              disabled={updateProbabilityMutation.isPending}
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Rarely</span>
-              <span>Usually</span>
-            </div>
-          </div>
-        )}
-
-        {/* Roll Button */}
-        {!pendingRoll && (
-          <Button 
-            onClick={handleRoll}
-            disabled={isRolling || rollMutation.isPending}
-            className="w-full bg-primary hover:bg-primary/90"
-            size="lg"
-          >
-            {isRolling ? (
-              <div className="flex items-center gap-2">
-                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                Rolling...
+    <Card className="matsu-card relative overflow-hidden">
+      <div className="relative z-10">
+        <CardHeader className="pb-4">
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <CardTitle className="text-xl">{decision.title}</CardTitle>
+                <div className="flex items-center gap-1">
+                  <button
+                    className="w-7 h-7 rounded-md bg-[oklch(0.88_0.035_83.6)] hover:bg-[oklch(0.84_0.045_83.6)] border border-[oklch(0.78_0.063_80.8)] flex items-center justify-center text-[oklch(0.41_0.077_78.9)] hover:text-[oklch(0.31_0.077_78.9)] transition-all"
+                    title="Edit decision"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    className="w-7 h-7 rounded-md bg-[oklch(0.88_0.035_83.6)] hover:bg-[oklch(0.94_0.08_20)] border border-[oklch(0.78_0.063_80.8)] hover:border-[oklch(0.75_0.12_20)] flex items-center justify-center text-[oklch(0.41_0.077_78.9)] hover:text-[oklch(0.75_0.12_20)] transition-all"
+                    title="Delete decision"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4 mr-2" />
-                Roll the Dice
-              </>
-            )}
-          </Button>
-        )}
-
-        {/* Pending Roll Indicator */}
-        {pendingRoll && !isRolling && (
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <Clock className="w-4 h-4" />
-            Waiting for follow-through confirmation
+              <p className="text-sm text-[oklch(0.51_0.077_74.3)] mb-3">
+                {decision.binary_decision?.yes_text && decision.binary_decision?.no_text 
+                  ? `${decision.binary_decision.yes_text} or ${decision.binary_decision.no_text}`
+                  : 'Make a mindful choice'
+                }
+              </p>
+            </div>
+            <div className="ml-2">
+              <Badge className="matsu-badge px-2 py-1">
+                {decision.type === 'binary' ? 'Yes/No' : 'Choice'}
+              </Badge>
+            </div>
           </div>
-        )}
-      </CardContent>
+
+          {/* Prominent Outcome Display */}
+          {pendingRoll && (
+            <div className={`p-4 rounded-xl mb-4 text-center ${
+              pendingRoll.result === 'yes' 
+                ? 'result-yes' 
+                : 'result-no'
+            }`}>
+              <div className="flex items-center justify-center gap-3 mb-1">
+                {pendingRoll.result === 'yes' ? (
+                  <CheckCircle className="w-6 h-6" />
+                ) : (
+                  <XCircle className="w-6 h-6" />
+                )}
+                <span className="text-2xl font-bold">
+                  {pendingRoll.result === 'yes' 
+                    ? decision.binary_decision?.yes_text || 'Yes'
+                    : decision.binary_decision?.no_text || 'No'
+                  }
+                </span>
+              </div>
+              <p className="text-sm opacity-90">
+                {pendingRoll.result === 'yes' 
+                  ? "The dice have spoken ✨" 
+                  : "Save it for another time 🌙"
+                }
+              </p>
+
+              {/* Compliance Tracking */}
+              <div className="mt-4 space-y-3">
+                <p className="text-sm font-medium">Did you follow this decision?</p>
+                <div className="flex gap-2 justify-center">
+                  <Button
+                    onClick={() => handleConfirm(true)}
+                    className="bg-white/20 hover:bg-white/30 border border-current flex-1 md:flex-none min-h-[44px]"
+                    disabled={confirmMutation.isPending}
+                  >
+                    ✓ Yes, I did
+                  </Button>
+                  <Button
+                    onClick={() => handleConfirm(false)}
+                    className="bg-white/20 hover:bg-white/30 border border-current flex-1 md:flex-none min-h-[44px]"
+                    disabled={confirmMutation.isPending}
+                  >
+                    ✗ No, I didn't
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
+          {/* Probability & Roll Section for Binary Decisions */}
+          {decision.type === 'binary' && !pendingRoll && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  {getDiceIcon(localProbability)}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl md:text-3xl font-bold">{localProbability}%</span>
+                    </div>
+                    <span className="text-xs text-[oklch(0.51_0.077_74.3)]">probability</span>
+                  </div>
+                </div>
+                
+                {/* Probability adjustment buttons */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => adjustProbability(-1)}
+                    size="sm"
+                    className="probability-button text-xl font-bold"
+                    disabled={updateProbabilityMutation.isPending}
+                  >
+                    <Minus className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    onClick={() => adjustProbability(1)}
+                    size="sm"
+                    className="probability-button text-xl font-bold"
+                    disabled={updateProbabilityMutation.isPending}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Roll Button */}
+          {!pendingRoll && (
+            <Button 
+              onClick={handleRoll}
+              disabled={rollMutation.isPending}
+              className="w-full roll-button text-lg py-6 font-bold"
+            >
+              <Dice1 className="w-5 h-5 mr-2" />
+              Roll the Dice
+            </Button>
+          )}
+
+          {/* Integrated Charts */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <BarChart3 className="w-4 h-4" />
+              <span>Progress & Compliance</span>
+            </div>
+            
+            <div className="h-32 md:h-36">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={mockHistory} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.74 0.063 80.8)" opacity={0.3} />
+                  <XAxis 
+                    dataKey="decision" 
+                    stroke="oklch(0.51 0.077 74.3)" 
+                    fontSize={10}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    yAxisId="left"
+                    stroke="oklch(0.71 0.097 111.7)" 
+                    fontSize={10}
+                    axisLine={false}
+                    tickLine={false}
+                    domain={[0, 100]}
+                    width={25}
+                  />
+                  <YAxis 
+                    yAxisId="right"
+                    orientation="right"
+                    stroke="oklch(0.75 0.12 140)" 
+                    fontSize={10}
+                    axisLine={false}
+                    tickLine={false}
+                    domain={[0, 100]}
+                    width={25}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'oklch(0.92 0.042 83.6)',
+                      border: '2px solid oklch(0.74 0.063 80.8)',
+                      borderRadius: '0.625rem',
+                      fontSize: '12px'
+                    }}
+                    formatter={(value: any, name: any) => [
+                      `${value}%`, 
+                      name === 'probability' ? 'Target %' : 'Compliance %'
+                    ]}
+                  />
+                  
+                  <Area
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="compliance"
+                    fill="oklch(0.75 0.12 140)"
+                    fillOpacity={0.2}
+                    stroke="oklch(0.75 0.12 140)"
+                    strokeWidth={2}
+                  />
+                  
+                  <Line 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="probability" 
+                    stroke="oklch(0.71 0.097 111.7)" 
+                    strokeWidth={3}
+                    dot={{ fill: 'oklch(0.71 0.097 111.7)', strokeWidth: 2, r: 3 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+            
+            {/* Legend & Stats */}
+            <div className="flex justify-between items-center text-xs text-[oklch(0.51_0.077_74.3)]">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'oklch(0.71 0.097 111.7)' }}></div>
+                  <span>Target</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'oklch(0.75 0.12 140)' }}></div>
+                  <span>Follow-through</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span>{totalRolls} decisions • {complianceRate}% followed</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </div>
     </Card>
   );
 }

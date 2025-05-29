@@ -1,8 +1,8 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-
 /* Studio Ghibli-inspired font imports */
 @import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Caveat:wght@400..700&display=swap');
+
+@import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -216,33 +216,135 @@
   font-family: var(--font-handwritten);
 }
 
-/* Custom animations for magical feel */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-6px); }
+/* Matsu theme styles from design POC */
+.matsu-app {
+  background: oklch(0.91 0.048 83.6);
+  color: oklch(0.41 0.077 78.9);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  min-height: 100vh;
 }
 
-@keyframes sparkle {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.1); }
+.matsu-card {
+  background: oklch(0.94 0.035 83.6);
+  border: 2px solid oklch(0.74 0.063 80.8);
+  border-radius: 0.625rem;
+  box-shadow: 0 2px 0 0 oklch(0.74 0.063 80.8), inset 0 1px 0 0 rgba(255,255,255,0.1);
+  transition: all 0.3s ease;
+  position: relative;
 }
 
-@keyframes gentle-bounce {
-  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-4px); }
-  60% { transform: translateY(-2px); }
+.matsu-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(120, 200, 255, 0.02) 0%, transparent 50%);
+  border-radius: 0.625rem;
+  pointer-events: none;
 }
 
-.animate-float {
-  animation: float 3s ease-in-out infinite;
+.matsu-button {
+  background: oklch(0.71 0.097 111.7);
+  color: oklch(0.98 0.005 0);
+  border: 2px solid oklch(0.59 0.096 111.8);
+  border-radius: 0.625rem;
+  box-shadow: 0 2px 0 0 oklch(0.59 0.096 111.8);
+  font-weight: 700;
+  transition: all 0.2s ease;
 }
 
-.animate-sparkle {
-  animation: sparkle 2s ease-in-out infinite;
+.matsu-button:hover {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 0 oklch(0.59 0.096 111.8);
 }
 
-.animate-gentle-bounce {
-  animation: gentle-bounce 2s ease-in-out;
+.matsu-button:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.texture {
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 2px, transparent 2px),
+    radial-gradient(circle at 75% 75%, rgba(255,255,255,0.05) 1px, transparent 1px),
+    linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.01) 50%, transparent 60%);
+  background-size: 24px 24px, 16px 16px, 100px 100px;
+  opacity: 0.4;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.result-yes {
+  background: oklch(0.85 0.08 140);
+  border-color: oklch(0.75 0.12 140);
+  box-shadow: 0 2px 0 0 oklch(0.75 0.12 140);
+  color: oklch(0.25 0.05 140);
+}
+
+.result-no {
+  background: oklch(0.85 0.08 20);
+  border-color: oklch(0.75 0.12 20);
+  box-shadow: 0 2px 0 0 oklch(0.75 0.12 20);
+  color: oklch(0.25 0.05 20);
+}
+
+.roll-button {
+  background: oklch(0.71 0.097 111.7);
+  border: 2px solid oklch(0.59 0.096 111.8);
+  border-radius: 0.625rem;
+  box-shadow: 0 2px 0 0 oklch(0.59 0.096 111.8);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.roll-button:hover {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 0 oklch(0.59 0.096 111.8);
+}
+
+.roll-button:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.probability-button {
+  background: oklch(0.88 0.035 83.6);
+  border: 2px solid oklch(0.78 0.063 80.8);
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 0 0 oklch(0.78 0.063 80.8);
+  color: oklch(0.41 0.077 78.9);
+  transition: all 0.2s ease;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.probability-button:hover {
+  background: oklch(0.84 0.045 83.6);
+  transform: translateY(0.5px);
+  box-shadow: 0 0.5px 0 0 oklch(0.78 0.063 80.8);
+}
+
+.probability-button:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+.matsu-badge {
+  background: oklch(0.89 0.025 83.6);
+  border: 1px solid oklch(0.79 0.045 80.8);
+  color: oklch(0.45 0.077 78.9);
+  border-radius: 0.375rem;
+  font-weight: 600;
+  font-size: 0.75rem;
 }
 
 /* Soft shadow styles for depth */
