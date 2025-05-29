@@ -1,4 +1,4 @@
-.PHONY: help dev up down logs clean test frontend backend db migrate
+.PHONY: help dev up down logs clean test frontend backend db migrate reset-db db-shell lint format check
 
 # Default target
 help: ## Show this help message
@@ -57,6 +57,12 @@ db-reset: ## Reset development database (removes all data)
 	@sleep 3
 	docker compose -f docker-compose.dev.yml up -d backend
 	@echo "✅ Database reset complete"
+
+reset-db: db-reset ## Alias for db-reset
+
+db-shell: ## Access database shell
+	@echo "🗄️  Accessing database shell..."
+	docker compose -f docker-compose.dev.yml exec postgres psql -U aleator -d aleator_dev
 
 migrate: ## Run database migrations
 	@echo "🔄 Running database migrations..."
@@ -138,3 +144,32 @@ status: ## Check status of all services
 	else \
 		echo "🔴 Frontend: Stopped"; \
 	fi
+
+# Combined commands
+lint: ## Run all linters
+	@echo "🔍 Running all linters..."
+	@$(MAKE) backend-lint
+	@$(MAKE) frontend-lint
+	@echo "✅ All linting complete"
+
+format: ## Format all code
+	@echo "✨ Formatting all code..."
+	@$(MAKE) backend-format
+	@echo "✅ All formatting complete"
+
+check: lint test ## Run linters and tests
+	@echo "✅ All checks passed!"
+
+# Quick development shortcuts
+restart: ## Restart development services
+	@echo "🔄 Restarting development services..."
+	docker compose -f docker-compose.dev.yml restart backend
+	@echo "✅ Services restarted"
+
+shell: ## Access backend shell
+	@echo "🐚 Accessing backend shell..."
+	docker compose -f docker-compose.dev.yml exec backend /bin/bash
+
+venv: ## Create and activate backend virtual environment (local development)
+	@echo "🐍 Setting up Python virtual environment..."
+	cd backend && uv venv .venv && echo "✅ Virtual environment created. Run 'source backend/.venv/bin/activate' to activate"

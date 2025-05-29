@@ -3,11 +3,7 @@ services:
   postgres:
     image: postgres:16-alpine
     env_file:
-      - ./.env
-    environment:
-      POSTGRES_DB: aleator_dev
-      POSTGRES_USER: aleator
-      POSTGRES_PASSWORD: aleator_dev_password
+      - ./.env.dev
     ports:
       - "5432:5432"
     volumes:
@@ -24,7 +20,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile.dev
     env_file:
-      - ./.env
+      - ./.env.dev
     environment:
       - PYTHONPATH=/app
     ports:
