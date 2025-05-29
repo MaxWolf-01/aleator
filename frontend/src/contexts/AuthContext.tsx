@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const currentUser = await apiClient.getCurrentUser();
         setUser(currentUser);
-      } catch (error) {
+      } catch {
         // User not authenticated or token expired
         // Only create a new guest session if we don't have any token
         const existingToken = localStorage.getItem('auth_token');
@@ -56,34 +56,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (credentials: LoginCredentials) => {
-    try {
-      const tokens = await apiClient.login(credentials);
-      apiClient.setAuthToken(tokens.access_token);
-      
-      const currentUser = await apiClient.getCurrentUser();
-      setUser(currentUser);
-    } catch (error) {
-      throw error;
-    }
+    const tokens = await apiClient.login(credentials);
+    apiClient.setAuthToken(tokens.access_token);
+    
+    const currentUser = await apiClient.getCurrentUser();
+    setUser(currentUser);
   };
 
   const register = async (credentials: RegisterCredentials) => {
-    try {
-      await apiClient.register(credentials);
-      // After registration, automatically log in
-      await login({
-        email: credentials.email,
-        password: credentials.password,
-      });
-    } catch (error) {
-      throw error;
-    }
+    await apiClient.register(credentials);
+    // After registration, automatically log in
+    await login({
+      email: credentials.email,
+      password: credentials.password,
+    });
   };
 
   const logout = async () => {
     try {
       await apiClient.logout();
-    } catch (error) {
+    } catch {
       // Continue with logout even if API call fails
     } finally {
       setUser(null);
@@ -92,27 +84,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const createGuestSession = async () => {
-    try {
-      const { guest_token } = await apiClient.createGuestSession();
-      apiClient.setAuthToken(guest_token);
-      
-      const currentUser = await apiClient.getCurrentUser();
-      setUser(currentUser);
-    } catch (error) {
-      throw error;
-    }
+    const { guest_token } = await apiClient.createGuestSession();
+    apiClient.setAuthToken(guest_token);
+    
+    const currentUser = await apiClient.getCurrentUser();
+    setUser(currentUser);
   };
 
   const convertGuestToUser = async (email: string, password: string) => {
-    try {
-      const tokens = await apiClient.convertGuestToUser(email, password);
-      apiClient.setAuthToken(tokens.access_token);
-      
-      const currentUser = await apiClient.getCurrentUser();
-      setUser(currentUser);
-    } catch (error) {
-      throw error;
-    }
+    const tokens = await apiClient.convertGuestToUser(email, password);
+    apiClient.setAuthToken(tokens.access_token);
+    
+    const currentUser = await apiClient.getCurrentUser();
+    setUser(currentUser);
   };
 
   const value: AuthContextType = {

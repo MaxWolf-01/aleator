@@ -159,9 +159,20 @@ class TestDecisionEndpoints:
         """Test that rolling produces varied results over multiple attempts."""
         results = []
         for _ in range(10):
+            # Roll the decision
             response = await client.post(f"/api/v1/decisions/{test_binary_decision.id}/roll", headers=auth_headers)
+            assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
             data = response.json()
             results.append(data["result"])
+            
+            # Confirm the roll to allow the next one
+            roll_id = data["id"]
+            confirm_response = await client.post(
+                f"/api/v1/decisions/{test_binary_decision.id}/rolls/{roll_id}/confirm",
+                headers=auth_headers,
+                json={"followed": True}
+            )
+            assert confirm_response.status_code == 200
 
         # With 67% probability, we might get varied results
         # This is probabilistic, so we just check that all results are valid

@@ -1,0 +1,116 @@
+name: Test
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: aleator_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+        cache-dependency-glob: "backend/pyproject.toml"
+    
+    - name: Set up Python
+      run: uv python install 3.12
+    
+    - name: Install dependencies
+      working-directory: ./backend
+      run: |
+        uv venv
+        source .venv/bin/activate
+        uv pip install -e ".[test]"
+    
+    - name: Run tests
+      working-directory: ./backend
+      env:
+        DATABASE_URL: "postgresql+asyncpg://postgres:postgres@localhost:5432/aleator_test"
+        SECRET_KEY: "test-secret-key-for-ci"
+        JWT_SECRET_KEY: "test-jwt-secret-key-for-ci"
+        JWT_ALGORITHM: "HS256"
+        JWT_EXPIRATION_HOURS: "24"
+      run: |
+        source .venv/bin/activate
+        pytest -v
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+    
+    - name: Install dependencies
+      working-directory: ./frontend
+      run: bun install
+    
+    - name: Run linting
+      working-directory: ./frontend
+      run: bun run lint
+    
+    - name: Build and type check
+      working-directory: ./frontend
+      run: bun run build
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+    
+    - name: Set up Python
+      run: uv python install 3.12
+    
+    - name: Install ruff
+      working-directory: ./backend
+      run: |
+        uv venv
+        source .venv/bin/activate
+        uv pip install ruff
+    
+    - name: Run backend linting
+      working-directory: ./backend
+      run: |
+        source .venv/bin/activate
+        ruff check .
+    
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+    
+    - name: Install frontend dependencies
+      working-directory: ./frontend
+      run: bun install
+    
+    - name: Run frontend linting
+      working-directory: ./frontend
+      run: bun run lint

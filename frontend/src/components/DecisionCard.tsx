@@ -64,7 +64,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
       try {
         const pending = await apiClient.getPendingRoll(decision.id) as Roll;
         setPendingRoll(pending);
-      } catch (error) {
+      } catch {
         // No pending roll found, which is fine
       }
     };

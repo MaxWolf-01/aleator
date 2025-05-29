@@ -1,6 +1,18 @@
-import type { AuthTokens, LoginCredentials, RegisterCredentials, User, ApiError } from '@/types';
+import type { AuthTokens, LoginCredentials, RegisterCredentials, User, ApiError, CreateBinaryDecisionForm, CreateMultiChoiceDecisionForm } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+export type CreateDecisionInput = (CreateBinaryDecisionForm & { type: 'binary'; cooldown_hours: number }) | 
+                                  (CreateMultiChoiceDecisionForm & { type: 'multi_choice' });
+
+export interface UpdateDecisionInput {
+  title?: string;
+  probability?: number;
+  yes_text?: string;
+  no_text?: string;
+  cooldown_hours?: number;
+  choices?: { name: string; weight: number }[];
+}
 
 class ApiClient {
   private baseURL: string;
@@ -116,14 +128,14 @@ class ApiClient {
     return this.request('/api/v1/decisions/');
   }
 
-  async createDecision(decision: any) {
+  async createDecision(decision: CreateDecisionInput) {
     return this.request('/api/v1/decisions/', {
       method: 'POST',
       body: JSON.stringify(decision),
     });
   }
 
-  async updateDecision(id: string, updates: any) {
+  async updateDecision(id: string, updates: UpdateDecisionInput) {
     return this.request(`/api/v1/decisions/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
