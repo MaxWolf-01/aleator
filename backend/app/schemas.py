@@ -57,14 +57,14 @@ class MultiChoiceDecisionCreate(BaseModel):
 class DecisionCreate(BaseModel):
     title: str = Field(max_length=200)
     type: DecisionType
-    cooldown_hours: int = Field(default=0, ge=0)
+    cooldown_hours: float = Field(default=0, ge=0)
     binary_data: BinaryDecisionCreate | None = None
     multi_choice_data: MultiChoiceDecisionCreate | None = None
 
 
 class DecisionUpdate(BaseModel):
     title: str | None = Field(None, max_length=200)
-    cooldown_hours: int | None = Field(None, ge=0)
+    cooldown_hours: float | None = Field(None, ge=0)
     probability: int | None = Field(None, ge=1, le=99)  # For binary decisions
     yes_text: str | None = Field(None, max_length=100)  # For binary decisions
     no_text: str | None = Field(None, max_length=100)  # For binary decisions
@@ -90,7 +90,7 @@ class DecisionResponse(BaseModel):
     id: int
     title: str
     type: DecisionType
-    cooldown_hours: int
+    cooldown_hours: float
     created_at: datetime
     updated_at: datetime
     binary_decision: BinaryDecisionResponse | None = None
@@ -119,7 +119,7 @@ class DecisionWithRollsResponse(BaseModel):
     id: int
     title: str
     type: DecisionType
-    cooldown_hours: int
+    cooldown_hours: float
     created_at: datetime
     updated_at: datetime
     binary_decision: BinaryDecisionResponse | None = None

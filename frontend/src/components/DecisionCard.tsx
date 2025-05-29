@@ -25,7 +25,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
   ComposedChart,
   Area,
@@ -56,7 +56,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [cooldownEndsAt, setCooldownEndsAt] = useState<Date | null>(null);
 
-  // Fetch pending roll on mount
+  // Fetch pending roll and check cooldown on mount
   useEffect(() => {
     const fetchPendingRoll = async () => {
       try {
@@ -67,8 +67,23 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
       }
     };
     
+    // Calculate cooldown from last confirmed roll
+    if (decision.cooldown_hours > 0 && decision.rolls && decision.rolls.length > 0) {
+      // Find the most recent confirmed roll
+      const confirmedRolls = decision.rolls.filter(r => r.followed !== null);
+      if (confirmedRolls.length > 0) {
+        const lastRoll = confirmedRolls[confirmedRolls.length - 1];
+        const lastRollTime = new Date(lastRoll.created_at);
+        const cooldownEnd = new Date(lastRollTime.getTime() + decision.cooldown_hours * 60 * 60 * 1000);
+        
+        if (cooldownEnd > new Date()) {
+          setCooldownEndsAt(cooldownEnd);
+        }
+      }
+    }
+    
     fetchPendingRoll();
-  }, [decision.id]);
+  }, [decision.id, decision.cooldown_hours, decision.rolls]);
 
   const rollMutation = useMutation<Roll, Error, void>({
     mutationFn: () => apiClient.rollDecision(decision.id) as Promise<Roll>,
@@ -122,6 +137,14 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
     },
     onSuccess: () => {
       setPendingRoll(null);
+      
+      // Set cooldown immediately if decision has cooldown_hours configured
+      if (decision.cooldown_hours > 0) {
+        const cooldownEnd = new Date();
+        cooldownEnd.setTime(cooldownEnd.getTime() + decision.cooldown_hours * 60 * 60 * 1000);
+        setCooldownEndsAt(cooldownEnd);
+      }
+      
       onUpdate();
     },
   });
@@ -234,13 +257,12 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
     }
   };
 
-  // Check for cooldown on mount and when decision changes
+  // Check for cooldown on mount
   useEffect(() => {
-    // Clear cooldown if enough time has passed
     if (cooldownEndsAt && new Date() > cooldownEndsAt) {
       setCooldownEndsAt(null);
     }
-  }, [cooldownEndsAt, decision]);
+  }, [cooldownEndsAt]);
 
   return (
     <Card className="matsu-card relative overflow-hidden">
@@ -384,30 +406,34 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
             </div>
           )}
 
-          {/* Roll Button or Cooldown Display */}
+          {/* Roll Button with Cooldown */}
           {!pendingRoll && (
-            <>
+            <Button
+              onClick={handleRoll}
+              disabled={rollMutation.isPending || (cooldownEndsAt !== null && new Date() < cooldownEndsAt)}
+              className={`w-full text-lg py-6 font-bold ${
+                cooldownEndsAt && new Date() < cooldownEndsAt
+                  ? 'opacity-50 cursor-not-allowed bg-[oklch(0.88_0.035_83.6)] hover:bg-[oklch(0.88_0.035_83.6)] text-[oklch(0.51_0.077_74.3)]'
+                  : 'roll-button'
+              }`}
+            >
               {cooldownEndsAt && new Date() < cooldownEndsAt ? (
-                <div className="w-full p-4 rounded-xl bg-[oklch(0.88_0.035_83.6)] border-2 border-[oklch(0.74_0.063_80.8)] text-center">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Clock className="w-5 h-5 text-[oklch(0.51_0.077_74.3)]" />
-                    <span className="text-sm font-medium text-[oklch(0.41_0.077_78.9)]">On Cooldown</span>
+                <div className="flex flex-col items-center gap-1">
+                  <div className="flex items-center">
+                    <Clock className="w-5 h-5 mr-2" />
+                    <span>On Cooldown</span>
                   </div>
-                  <p className="text-xs text-[oklch(0.51_0.077_74.3)]">
-                    You can roll again {formatCooldownTime(cooldownEndsAt)}
-                  </p>
+                  <span className="text-xs opacity-75">
+                    Available {formatCooldownTime(cooldownEndsAt)}
+                  </span>
                 </div>
               ) : (
-                <Button
-                  onClick={handleRoll}
-                  disabled={rollMutation.isPending}
-                  className="w-full roll-button text-lg py-6 font-bold"
-                >
+                <>
                   <Dice1 className="w-5 h-5 mr-2" />
                   Roll the Dice
-                </Button>
+                </>
               )}
-            </>
+            </Button>
           )}
 
           {/* Integrated Charts - only show if there's data */}
@@ -455,7 +481,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
                       domain={[0, 100]}
                       width={25}
                     />
-                    <Tooltip
+                    <RechartsTooltip
                       contentStyle={{
                         backgroundColor: "oklch(0.92 0.042 83.6)",
                         border: "2px solid oklch(0.74 0.063 80.8)",
