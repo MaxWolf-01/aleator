@@ -1,10 +1,12 @@
-from typing import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import AsyncIterator
+
 from alembic import command, config
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine, AsyncEngine
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
-from fastapi import Depends
+
 from app.settings import Settings, get_settings
 
 _engine: AsyncEngine | None = None
@@ -45,6 +47,22 @@ async def prepare_database(
     settings: Settings = Depends(get_settings), engine: AsyncEngine = Depends(get_engine)
 ) -> None:
     """Prepare the database - either create tables or run migrations."""
+    if settings.db_auto_create:
+        async with engine.begin() as conn:
+            await conn.run_sync(SQLModel.metadata.create_all)
+    else:
+        alembic_cfg = config.Config("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
+
+
+async def prepare_database_startup() -> None:
+    """Prepare the database during startup without dependency injection."""
+    # Import models to ensure they're registered with SQLModel.metadata
+    from app.models import BinaryDecision, Choice, Decision, MultiChoiceDecision, ProbabilityHistory, Roll, User
+
+    settings = get_settings()
+    engine = get_engine(settings)
+
     if settings.db_auto_create:
         async with engine.begin() as conn:
             await conn.run_sync(SQLModel.metadata.create_all)

@@ -1,0 +1,51 @@
+services:
+  # PostgreSQL Database (same as production)
+  postgres:
+    image: postgres:16-alpine
+    env_file:
+      - ./.env
+    environment:
+      POSTGRES_DB: aleator_dev
+      POSTGRES_USER: aleator
+      POSTGRES_PASSWORD: aleator_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aleator -d aleator_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend API in development mode
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    env_file:
+      - ./.env
+    environment:
+      - PYTHONPATH=/app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/.venv  # Don't mount the virtual environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload --log-level debug
+    develop:
+      watch:
+        - action: sync
+          path: ./backend
+          target: /app
+          ignore:
+            - .venv/
+            - __pycache__/
+        - action: rebuild
+          path: ./backend/pyproject.toml
+
+volumes:
+  postgres_dev_data:

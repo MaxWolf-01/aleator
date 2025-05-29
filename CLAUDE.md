@@ -282,3 +282,14 @@ The core insight is that abiding by RNG is psychologically easier than resisting
 Remember: Aleator is about making moderation easier through elegant simplicity. Every feature should support the core mission of helping users make better decisions through probability. The design POC is your north star for UI/UX decisions.
 
 Focus on creating a cozy, delightful experience that users will actually want to use daily. Keep the interface clean, the interactions smooth, and stay true to the Studio Ghibli-inspired aesthetic. When in doubt, choose the simpler implementation that provides clear value to the user.
+
+## Important Coding Standards
+
+### Datetime Handling
+NEVER use `datetime.utcnow()` - it's deprecated! Always use timezone-aware datetime objects:
+```python
+from datetime import datetime, timezone
+# Correct:
+datetime.now(timezone.utc)
+# NEVER: datetime.utcnow()
+```

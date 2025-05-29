@@ -6,8 +6,8 @@ class Settings(BaseSettings):
     db_auto_create: bool
 
     database_url: str
-    cors_origins: list[str]
-    
+    cors_origins: list[str] = ["http://localhost:5173"]
+
     # JWT settings
     jwt_secret_key: str
     jwt_algorithm: str = "HS256"

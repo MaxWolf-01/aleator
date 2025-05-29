@@ -1,17 +1,19 @@
 from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.models import User, Roll
-from app.schemas import (
-    DecisionCreate, DecisionUpdate, DecisionResponse, 
-    RollResult, RollConfirmation
-)
 from app.auth import get_current_active_user
 from app.db import get_db_session
+from app.models import Roll, User
+from app.schemas import DecisionCreate, DecisionResponse, DecisionUpdate, RollConfirmation, RollResult
 from app.services import (
-    create_decision, get_user_decisions, get_decision_by_id,
-    update_decision, roll_decision, confirm_roll
+    confirm_roll,
+    create_decision,
+    get_decision_by_id,
+    get_user_decisions,
+    roll_decision,
+    update_decision,
 )
 
 router = APIRouter(prefix="/decisions", tags=["decisions"])
@@ -21,7 +23,7 @@ router = APIRouter(prefix="/decisions", tags=["decisions"])
 async def create_new_decision(
     decision_data: DecisionCreate,
     current_user: User = Depends(get_current_active_user),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Create a new decision."""
     try:
@@ -33,8 +35,7 @@ async def create_new_decision(
 
 @router.get("/", response_model=List[DecisionResponse])
 async def get_decisions(
-    current_user: User = Depends(get_current_active_user),
-    session: AsyncSession = Depends(get_db_session)
+    current_user: User = Depends(get_current_active_user), session: AsyncSession = Depends(get_db_session)
 ):
     """Get all decisions for the current user."""
     decisions = await get_user_decisions(current_user, session)
@@ -45,7 +46,7 @@ async def get_decisions(
 async def get_decision(
     decision_id: int,
     current_user: User = Depends(get_current_active_user),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Get a specific decision."""
     decision = await get_decision_by_id(decision_id, current_user, session)
@@ -59,13 +60,13 @@ async def update_decision_endpoint(
     decision_id: int,
     update_data: DecisionUpdate,
     current_user: User = Depends(get_current_active_user),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Update a decision."""
     decision = await get_decision_by_id(decision_id, current_user, session)
     if not decision:
         raise HTTPException(status_code=404, detail="Decision not found")
-    
+
     try:
         updated_decision = await update_decision(decision, update_data, session)
         return updated_decision
@@ -77,13 +78,13 @@ async def update_decision_endpoint(
 async def roll_decision_endpoint(
     decision_id: int,
     current_user: User = Depends(get_current_active_user),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Roll a decision to get a result."""
     decision = await get_decision_by_id(decision_id, current_user, session)
     if not decision:
         raise HTTPException(status_code=404, detail="Decision not found")
-    
+
     try:
         roll = await roll_decision(decision, session)
         return roll
@@ -97,29 +98,27 @@ async def confirm_decision_roll(
     roll_id: int,
     confirmation: RollConfirmation,
     current_user: User = Depends(get_current_active_user),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Confirm whether the user followed through on a roll."""
     # Verify the decision belongs to the user
     decision = await get_decision_by_id(decision_id, current_user, session)
     if not decision:
         raise HTTPException(status_code=404, detail="Decision not found")
-    
+
     # Get the specific roll
     from sqlmodel import select
-    roll_statement = select(Roll).where(
-        Roll.id == roll_id, 
-        Roll.decision_id == decision_id
-    )
+
+    roll_statement = select(Roll).where(Roll.id == roll_id, Roll.decision_id == decision_id)
     roll_result = await session.exec(roll_statement)
     roll = roll_result.first()
-    
+
     if not roll:
         raise HTTPException(status_code=404, detail="Roll not found")
-    
+
     if roll.followed is not None:
         raise HTTPException(status_code=400, detail="Roll already confirmed")
-    
+
     try:
         updated_roll = await confirm_roll(roll, confirmation.followed, session)
         return {"message": "Roll confirmed", "followed": updated_roll.followed}

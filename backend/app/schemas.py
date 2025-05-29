@@ -1,6 +1,8 @@
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
 from pydantic import BaseModel, EmailStr, Field
+
 from app.models import DecisionType
 
 
