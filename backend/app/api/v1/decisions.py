@@ -15,6 +15,7 @@ from app.schemas import (
     RollResult,
 )
 from app.services import (
+    check_cooldown,
     confirm_roll,
     create_decision,
     get_decision_by_id,
@@ -115,6 +116,13 @@ async def roll_decision_endpoint(
     pending_roll = await get_pending_roll(decision_id, current_user, session)
     if pending_roll:
         raise HTTPException(status_code=400, detail="You have a pending roll that must be confirmed first")
+
+    # Check if decision is on cooldown
+    is_on_cooldown, cooldown_ends_at = await check_cooldown(decision, current_user, session)
+    if is_on_cooldown:
+        raise HTTPException(
+            status_code=400, detail=f"Decision is on cooldown. You can roll again at {cooldown_ends_at.isoformat()}"
+        )
 
     try:
         roll = await roll_decision(decision, session)

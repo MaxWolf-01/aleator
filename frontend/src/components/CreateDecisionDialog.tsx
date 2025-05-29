@@ -10,7 +10,14 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { apiClient } from "@/lib/api";
 import type { CreateBinaryDecisionForm } from "@/types";
-import { X, Dice1, Plus } from "lucide-react";
+import { X, Dice1, Plus, Clock } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface CreateDecisionDialogProps {
   open: boolean;
@@ -31,6 +38,8 @@ export function CreateDecisionDialog({
   onSuccess,
 }: CreateDecisionDialogProps) {
   const [probability, setProbability] = useState([67]);
+  const [cooldownValue, setCooldownValue] = useState(0);
+  const [cooldownUnit, setCooldownUnit] = useState<'minutes' | 'hours' | 'days'>('hours');
 
   const {
     register,
@@ -47,19 +56,39 @@ export function CreateDecisionDialog({
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateBinaryDecisionForm) =>
-      apiClient.createDecision({
+    mutationFn: (data: CreateBinaryDecisionForm) => {
+      // Convert cooldown to hours
+      let cooldownHours = 0;
+      if (cooldownValue > 0) {
+        switch (cooldownUnit) {
+          case 'minutes':
+            cooldownHours = cooldownValue / 60;
+            break;
+          case 'hours':
+            cooldownHours = cooldownValue;
+            break;
+          case 'days':
+            cooldownHours = cooldownValue * 24;
+            break;
+        }
+      }
+      
+      return apiClient.createDecision({
         title: data.title,
         type: "binary",
+        cooldown_hours: cooldownHours,
         binary_data: {
           probability: probability[0],
           yes_text: data.yes_text,
           no_text: data.no_text,
         },
-      }),
+      });
+    },
     onSuccess: () => {
       reset();
       setProbability([67]);
+      setCooldownValue(0);
+      setCooldownUnit('hours');
       onSuccess();
     },
   });
@@ -183,6 +212,47 @@ export function CreateDecisionDialog({
                     </p>
                   )}
                 </div>
+              </div>
+
+              {/* Cooldown Configuration */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-[oklch(0.51_0.077_74.3)]">
+                  <Clock className="w-4 h-4" />
+                  Roll Cooldown
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={cooldownValue}
+                    onChange={(e) => setCooldownValue(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
+                    placeholder="0"
+                    className="flex-1 border-2 border-[oklch(0.74_0.063_80.8)] bg-[oklch(0.96_0.025_83.6)] focus:border-[oklch(0.71_0.097_111.7)]"
+                  />
+                  <Select
+                    value={cooldownUnit}
+                    onValueChange={(value) => setCooldownUnit(value as 'minutes' | 'hours' | 'days')}
+                  >
+                    <SelectTrigger className="w-24 border-2 border-[oklch(0.74_0.063_80.8)] bg-[oklch(0.96_0.025_83.6)] focus:border-[oklch(0.71_0.097_111.7)]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[oklch(0.96_0.025_83.6)] border-2 border-[oklch(0.74_0.063_80.8)]">
+                      <SelectItem value="minutes" className="cursor-pointer hover:bg-[oklch(0.88_0.035_83.6)]">
+                        min
+                      </SelectItem>
+                      <SelectItem value="hours" className="cursor-pointer hover:bg-[oklch(0.88_0.035_83.6)]">
+                        hrs
+                      </SelectItem>
+                      <SelectItem value="days" className="cursor-pointer hover:bg-[oklch(0.88_0.035_83.6)]">
+                        days
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-xs text-[oklch(0.61_0.077_74.3)]">
+                  Time you must wait between rolls after confirming (0 = no cooldown)
+                </p>
               </div>
 
               {/* Form Actions */}

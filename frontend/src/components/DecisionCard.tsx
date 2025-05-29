@@ -18,6 +18,7 @@ import {
   Trash2,
   CheckCircle,
   XCircle,
+  Clock,
 } from "lucide-react";
 import {
   Line,
@@ -53,6 +54,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
   );
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [cooldownEndsAt, setCooldownEndsAt] = useState<Date | null>(null);
 
   // Fetch pending roll on mount
   useEffect(() => {
@@ -85,6 +87,14 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
           }
         };
         fetchPending();
+      }
+      // Check if error is about cooldown
+      else if (error.message.includes("cooldown")) {
+        // Extract the ISO date from the error message
+        const match = error.message.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z?)/);
+        if (match) {
+          setCooldownEndsAt(new Date(match[1]));
+        }
       }
     },
   });
@@ -188,7 +198,49 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
     };
   });
 
-  // Don't show any chart data if no rolls yet
+  // Helper function to format cooldown time
+  const formatCooldownTime = (endsAt: Date) => {
+    const now = new Date();
+    const diff = endsAt.getTime() - now.getTime();
+    
+    if (diff <= 0) return "now";
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours > 24) {
+      const days = Math.floor(hours / 24);
+      return `in ${days} day${days > 1 ? 's' : ''}`;
+    } else if (hours > 0) {
+      return `in ${hours}h ${minutes}m`;
+    } else {
+      return `in ${minutes}m`;
+    }
+  };
+
+  // Format cooldown hours for display
+  const formatCooldownHours = (hours: number): string => {
+    if (hours < 1) {
+      return `${Math.round(hours * 60)}min`;
+    } else if (hours === 24) {
+      return "Daily";
+    } else if (hours === 168) {
+      return "Weekly";
+    } else if (hours % 24 === 0) {
+      const days = hours / 24;
+      return `${days} day${days > 1 ? 's' : ''}`;
+    } else {
+      return `${hours}h`;
+    }
+  };
+
+  // Check for cooldown on mount and when decision changes
+  useEffect(() => {
+    // Clear cooldown if enough time has passed
+    if (cooldownEndsAt && new Date() > cooldownEndsAt) {
+      setCooldownEndsAt(null);
+    }
+  }, [cooldownEndsAt, decision]);
 
   return (
     <Card className="matsu-card relative overflow-hidden">
@@ -218,6 +270,15 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
                   </button>
                 </div>
               </div>
+              {/* Show cooldown setting if enabled */}
+              {decision.cooldown_hours > 0 && (
+                <div className="flex items-center gap-1 text-xs text-[oklch(0.51_0.077_74.3)]">
+                  <Clock className="w-3 h-3" />
+                  <span>
+                    {formatCooldownHours(decision.cooldown_hours)} cooldown
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -323,16 +384,30 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
             </div>
           )}
 
-          {/* Roll Button */}
+          {/* Roll Button or Cooldown Display */}
           {!pendingRoll && (
-            <Button
-              onClick={handleRoll}
-              disabled={rollMutation.isPending}
-              className="w-full roll-button text-lg py-6 font-bold"
-            >
-              <Dice1 className="w-5 h-5 mr-2" />
-              Roll the Dice
-            </Button>
+            <>
+              {cooldownEndsAt && new Date() < cooldownEndsAt ? (
+                <div className="w-full p-4 rounded-xl bg-[oklch(0.88_0.035_83.6)] border-2 border-[oklch(0.74_0.063_80.8)] text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Clock className="w-5 h-5 text-[oklch(0.51_0.077_74.3)]" />
+                    <span className="text-sm font-medium text-[oklch(0.41_0.077_78.9)]">On Cooldown</span>
+                  </div>
+                  <p className="text-xs text-[oklch(0.51_0.077_74.3)]">
+                    You can roll again {formatCooldownTime(cooldownEndsAt)}
+                  </p>
+                </div>
+              ) : (
+                <Button
+                  onClick={handleRoll}
+                  disabled={rollMutation.isPending}
+                  className="w-full roll-button text-lg py-6 font-bold"
+                >
+                  <Dice1 className="w-5 h-5 mr-2" />
+                  Roll the Dice
+                </Button>
+              )}
+            </>
           )}
 
           {/* Integrated Charts - only show if there's data */}

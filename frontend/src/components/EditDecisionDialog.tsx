@@ -3,10 +3,16 @@ import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
 import type { DecisionWithDetails } from '@/types';
 import { apiClient } from '@/lib/api';
-import { X, Edit2, Save } from "lucide-react";
+import { X, Edit2, Save, Clock } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface EditDecisionDialogProps {
   decision: DecisionWithDetails | null;
@@ -17,16 +23,33 @@ interface EditDecisionDialogProps {
 
 export function EditDecisionDialog({ decision, open, onOpenChange, onUpdate }: EditDecisionDialogProps) {
   const [title, setTitle] = useState('');
-  const [probability, setProbability] = useState([50]);
   const [yesText, setYesText] = useState('Yes');
   const [noText, setNoText] = useState('No');
+  const [cooldownValue, setCooldownValue] = useState(0);
+  const [cooldownUnit, setCooldownUnit] = useState<'minutes' | 'hours' | 'days'>('hours');
 
   // Update form when decision changes
   useEffect(() => {
     if (decision) {
       setTitle(decision.title);
+      
+      // Convert hours to appropriate unit
+      const hours = decision.cooldown_hours || 0;
+      if (hours === 0) {
+        setCooldownValue(0);
+        setCooldownUnit('hours');
+      } else if (hours % 24 === 0) {
+        setCooldownValue(hours / 24);
+        setCooldownUnit('days');
+      } else if (hours < 1) {
+        setCooldownValue(hours * 60);
+        setCooldownUnit('minutes');
+      } else {
+        setCooldownValue(hours);
+        setCooldownUnit('hours');
+      }
+      
       if (decision.binary_decision) {
-        setProbability([decision.binary_decision.probability]);
         setYesText(decision.binary_decision.yes_text);
         setNoText(decision.binary_decision.no_text);
       }
@@ -37,10 +60,26 @@ export function EditDecisionDialog({ decision, open, onOpenChange, onUpdate }: E
     mutationFn: async () => {
       if (!decision) return;
       
-      // Update decision title, probability, and yes/no text
+      // Convert cooldown to hours
+      let cooldownHours = 0;
+      if (cooldownValue > 0) {
+        switch (cooldownUnit) {
+          case 'minutes':
+            cooldownHours = cooldownValue / 60;
+            break;
+          case 'hours':
+            cooldownHours = cooldownValue;
+            break;
+          case 'days':
+            cooldownHours = cooldownValue * 24;
+            break;
+        }
+      }
+      
+      // Update decision title and yes/no text
       await apiClient.updateDecision(decision.id, { 
         title,
-        probability: decision.type === 'binary' ? probability[0] : undefined,
+        cooldown_hours: cooldownHours,
         yes_text: decision.type === 'binary' ? yesText : undefined,
         no_text: decision.type === 'binary' ? noText : undefined
       });
@@ -95,29 +134,7 @@ export function EditDecisionDialog({ decision, open, onOpenChange, onUpdate }: E
               </div>
 
               {decision.type === 'binary' && (
-                <>
-                  <div className="space-y-3">
-                    <Label className="flex items-center justify-between text-[oklch(0.51_0.077_74.3)]">
-                      <span>Probability</span>
-                      <span className="font-bold text-[oklch(0.71_0.097_111.7)]">
-                        {probability[0]}%
-                      </span>
-                    </Label>
-                    <Slider
-                      value={probability}
-                      onValueChange={setProbability}
-                      max={99}
-                      min={1}
-                      step={1}
-                      className="cursor-pointer"
-                    />
-                    <div className="flex justify-between text-xs text-[oklch(0.61_0.077_74.3)]">
-                      <span>1%</span>
-                      <span>99%</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="yes-text" className="text-[oklch(0.51_0.077_74.3)]">Yes Answer Text</Label>
                       <Input
@@ -140,18 +157,48 @@ export function EditDecisionDialog({ decision, open, onOpenChange, onUpdate }: E
                       />
                     </div>
                   </div>
-                </>
               )}
-              
-              {/* Note about probability changes */}
-              {decision.type === 'binary' && (
-                <div className="p-3 bg-[oklch(0.96_0.025_83.6)] rounded-lg border border-[oklch(0.74_0.063_80.8)]">
-                  <p className="text-xs text-[oklch(0.51_0.077_74.3)]">
-                    <strong>Note:</strong> Changing the probability here will update the default for future rolls. 
-                    Temporary probability adjustments can be made in the decision card before rolling.
-                  </p>
+
+              {/* Cooldown Configuration */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-[oklch(0.51_0.077_74.3)]">
+                  <Clock className="w-4 h-4" />
+                  Roll Cooldown
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={cooldownValue}
+                    onChange={(e) => setCooldownValue(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
+                    placeholder="0"
+                    className="flex-1 border-2 border-[oklch(0.74_0.063_80.8)] bg-[oklch(0.96_0.025_83.6)] focus:border-[oklch(0.71_0.097_111.7)]"
+                  />
+                  <Select
+                    value={cooldownUnit}
+                    onValueChange={(value) => setCooldownUnit(value as 'minutes' | 'hours' | 'days')}
+                  >
+                    <SelectTrigger className="w-24 border-2 border-[oklch(0.74_0.063_80.8)] bg-[oklch(0.96_0.025_83.6)] focus:border-[oklch(0.71_0.097_111.7)]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[oklch(0.96_0.025_83.6)] border-2 border-[oklch(0.74_0.063_80.8)]">
+                      <SelectItem value="minutes" className="cursor-pointer hover:bg-[oklch(0.88_0.035_83.6)]">
+                        min
+                      </SelectItem>
+                      <SelectItem value="hours" className="cursor-pointer hover:bg-[oklch(0.88_0.035_83.6)]">
+                        hrs
+                      </SelectItem>
+                      <SelectItem value="days" className="cursor-pointer hover:bg-[oklch(0.88_0.035_83.6)]">
+                        days
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
+                <p className="text-xs text-[oklch(0.61_0.077_74.3)]">
+                  Time you must wait between rolls after confirming (0 = no cooldown)
+                </p>
+              </div>
 
               <div className="flex gap-3 pt-4">
                 <Button 

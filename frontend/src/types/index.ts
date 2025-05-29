@@ -30,6 +30,7 @@ export interface Decision {
   user_id: string;
   title: string;
   type: DecisionType;
+  cooldown_hours: number;
   created_at: string;
   updated_at: string;
 }
@@ -85,6 +86,7 @@ export interface CreateBinaryDecisionForm {
 
 export interface CreateMultiChoiceDecisionForm {
   title: string;
+  cooldown_hours: number;
   choices: { name: string; weight: number }[];
 }
 

@@ -1,4 +1,5 @@
 import secrets
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from sqlmodel import select
@@ -20,7 +21,9 @@ from app.schemas import DecisionCreate, DecisionUpdate
 async def create_decision(user: User, decision_data: DecisionCreate, session: AsyncSession) -> Decision:
     """Create a new decision for a user."""
     # Create the base decision
-    decision = Decision(user_id=user.id, title=decision_data.title, type=decision_data.type)
+    decision = Decision(
+        user_id=user.id, title=decision_data.title, type=decision_data.type, cooldown_hours=decision_data.cooldown_hours
+    )
     session.add(decision)
     await session.commit()
     await session.refresh(decision)
@@ -111,6 +114,9 @@ async def update_decision(decision: Decision, update_data: DecisionUpdate, sessi
     """Update a decision."""
     if update_data.title is not None:
         decision.title = update_data.title
+
+    if update_data.cooldown_hours is not None:
+        decision.cooldown_hours = update_data.cooldown_hours
 
     # For binary decisions, update probability and text
     if decision.type == DecisionType.BINARY:
@@ -236,3 +242,37 @@ async def get_pending_roll(decision_id: int, user: User, session: AsyncSession) 
     )
     result = await session.exec(statement)
     return result.first()
+
+
+async def get_last_confirmed_roll(decision_id: int, user: User, session: AsyncSession) -> Optional[Roll]:
+    """Get the most recent confirmed roll for a decision."""
+    statement = (
+        select(Roll)
+        .join(Decision)
+        .where(Roll.decision_id == decision_id, Decision.user_id == user.id, Roll.followed.is_not(None))
+        .order_by(Roll.created_at.desc())
+    )
+    result = await session.exec(statement)
+    return result.first()
+
+
+async def check_cooldown(decision: Decision, user: User, session: AsyncSession) -> tuple[bool, Optional[datetime]]:
+    """Check if a decision is on cooldown. Returns (is_on_cooldown, cooldown_ends_at)."""
+    if decision.cooldown_hours == 0:
+        return False, None
+
+    # Get the last confirmed roll
+    last_roll = await get_last_confirmed_roll(decision.id, user, session)
+    if not last_roll:
+        # No previous rolls, not on cooldown
+        return False, None
+
+    # Calculate when cooldown ends
+    cooldown_ends_at = last_roll.created_at + timedelta(hours=decision.cooldown_hours)
+
+    # Check if we're still in cooldown
+    now = datetime.now(timezone.utc)
+    if now < cooldown_ends_at:
+        return True, cooldown_ends_at
+
+    return False, None
