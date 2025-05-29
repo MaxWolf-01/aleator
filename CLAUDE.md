@@ -208,3 +208,10 @@
 - Store learnings in condensed, actionable form in CLAUDE.md
 - Focus on what's useful for future sessions, not minor session-specific details
 - Include preferences, style decisions, debugging solutions, and library gotchas
+
+## Critical Design Decisions
+- **Probability updates are NOT saved immediately**: Only save probability when user confirms follow-through
+- **Follow-through terminology**: Use "follow-through" everywhere, never "compliance"
+- **Chart synchronization**: Probability and follow-through must be in sync - saving happens together
+- **API endpoints need trailing slashes**: FastAPI redirects without them, causing issues
+- **Ruff config**: Use `[lint]` section, not top-level settings in .ruff.toml

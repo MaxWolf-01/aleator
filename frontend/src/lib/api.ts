@@ -113,11 +113,11 @@ class ApiClient {
 
   // Decision endpoints
   async getDecisions() {
-    return this.request('/api/v1/decisions');
+    return this.request('/api/v1/decisions/');
   }
 
   async createDecision(decision: any) {
-    return this.request('/api/v1/decisions', {
+    return this.request('/api/v1/decisions/', {
       method: 'POST',
       body: JSON.stringify(decision),
     });
@@ -136,8 +136,8 @@ class ApiClient {
     });
   }
 
-  async confirmFollowThrough(id: string, followed: boolean) {
-    return this.request(`/api/v1/decisions/${id}/confirm`, {
+  async confirmFollowThrough(decisionId: string, rollId: string, followed: boolean) {
+    return this.request(`/api/v1/decisions/${decisionId}/rolls/${rollId}/confirm`, {
       method: 'POST',
       body: JSON.stringify({ followed }),
     });

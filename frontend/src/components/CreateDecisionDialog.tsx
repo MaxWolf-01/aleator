@@ -48,7 +48,7 @@ export function CreateDecisionDialog({ open, onOpenChange, onSuccess }: CreateDe
       apiClient.createDecision({
         title: data.title,
         type: 'binary',
-        binary_decision: {
+        binary_data: {
           probability: probability[0],
           yes_text: data.yes_text,
           no_text: data.no_text,

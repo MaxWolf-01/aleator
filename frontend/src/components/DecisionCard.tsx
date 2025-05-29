@@ -31,18 +31,21 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
   });
 
   const confirmMutation = useMutation({
-    mutationFn: (followed: boolean) => 
-      apiClient.confirmFollowThrough(pendingRoll!.id, followed),
+    mutationFn: async (followed: boolean) => {
+      if (!pendingRoll) throw new Error('No pending roll');
+      
+      // Update probability along with confirmation
+      const probabilityChanged = localProbability !== decision.binary_decision?.probability;
+      
+      if (probabilityChanged && decision.type === 'binary') {
+        await apiClient.updateDecision(decision.id, { probability: localProbability });
+      }
+      
+      // Confirm the roll with both decision ID and roll ID
+      return apiClient.confirmFollowThrough(decision.id, pendingRoll.id, followed);
+    },
     onSuccess: () => {
       setPendingRoll(null);
-      onUpdate();
-    },
-  });
-
-  const updateProbabilityMutation = useMutation({
-    mutationFn: (newProbability: number) =>
-      apiClient.updateDecision(decision.id, { probability: newProbability }),
-    onSuccess: () => {
       onUpdate();
     },
   });
@@ -58,7 +61,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
   const adjustProbability = (change: number) => {
     const newProb = Math.max(1, Math.min(99, localProbability + change));
     setLocalProbability(newProb);
-    updateProbabilityMutation.mutate(newProb);
+    // DON'T save immediately - wait for confirmation
   };
 
   const getDiceIcon = (probability: number) => {
@@ -73,16 +76,16 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
 
   // Mock history data for now - will be replaced with real data
   const mockHistory = [
-    { decision: "#1", probability: 80, compliance: 85 },
-    { decision: "#2", probability: 75, compliance: 87 },
-    { decision: "#3", probability: 70, compliance: 91 },
-    { decision: "#4", probability: localProbability, compliance: 89 },
+    { decision: "#1", probability: 80, followThrough: 85 },
+    { decision: "#2", probability: 75, followThrough: 87 },
+    { decision: "#3", probability: 70, followThrough: 91 },
+    { decision: "#4", probability: decision.binary_decision?.probability || 50, followThrough: 89 },
   ];
 
   // Calculate stats
   const totalRolls = decision.rolls?.length || 0;
   const followedCount = decision.rolls?.filter(r => r.followed).length || 0;
-  const complianceRate = totalRolls > 0 ? Math.round((followedCount / totalRolls) * 100) : 0;
+  const followThroughRate = totalRolls > 0 ? Math.round((followedCount / totalRolls) * 100) : 0;
 
   return (
     <Card className="matsu-card relative overflow-hidden">
@@ -148,7 +151,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
                 }
               </p>
 
-              {/* Compliance Tracking */}
+              {/* Follow-through Tracking */}
               <div className="mt-4 space-y-3">
                 <p className="text-sm font-medium">Did you follow this decision?</p>
                 <div className="flex gap-2 justify-center">
@@ -168,6 +171,13 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
                   </Button>
                 </div>
               </div>
+              
+              {/* Show if probability was adjusted */}
+              {localProbability !== decision.binary_decision?.probability && (
+                <p className="text-xs opacity-75 mt-2">
+                  Probability will update from {decision.binary_decision?.probability}% to {localProbability}%
+                </p>
+              )}
             </div>
           )}
         </CardHeader>
@@ -193,7 +203,6 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
                     onClick={() => adjustProbability(-1)}
                     size="sm"
                     className="probability-button text-xl font-bold"
-                    disabled={updateProbabilityMutation.isPending}
                   >
                     <Minus className="w-4 h-4" />
                   </Button>
@@ -201,12 +210,18 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
                     onClick={() => adjustProbability(1)}
                     size="sm"
                     className="probability-button text-xl font-bold"
-                    disabled={updateProbabilityMutation.isPending}
                   >
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
+              
+              {/* Show if probability has been adjusted but not saved */}
+              {localProbability !== decision.binary_decision?.probability && (
+                <p className="text-xs text-[oklch(0.51_0.077_74.3)] text-center">
+                  Probability adjusted • Will save on next follow-through
+                </p>
+              )}
             </div>
           )}
 
@@ -226,7 +241,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-medium">
               <BarChart3 className="w-4 h-4" />
-              <span>Progress & Compliance</span>
+              <span>Progress & Follow-through</span>
             </div>
             
             <div className="h-32 md:h-36">
@@ -268,14 +283,14 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
                     }}
                     formatter={(value: any, name: any) => [
                       `${value}%`, 
-                      name === 'probability' ? 'Target %' : 'Compliance %'
+                      name === 'probability' ? 'Target %' : 'Follow-through %'
                     ]}
                   />
                   
                   <Area
                     yAxisId="right"
                     type="monotone"
-                    dataKey="compliance"
+                    dataKey="followThrough"
                     fill="oklch(0.75 0.12 140)"
                     fillOpacity={0.2}
                     stroke="oklch(0.75 0.12 140)"
@@ -307,7 +322,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
                 </div>
               </div>
               <div className="text-right">
-                <span>{totalRolls} decisions • {complianceRate}% followed</span>
+                <span>{totalRolls} decisions • {followThroughRate}% followed</span>
               </div>
             </div>
           </div>

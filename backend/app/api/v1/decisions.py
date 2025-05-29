@@ -92,7 +92,7 @@ async def roll_decision_endpoint(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/{decision_id}/confirm")
+@router.post("/{decision_id}/rolls/{roll_id}/confirm")
 async def confirm_decision_roll(
     decision_id: int,
     roll_id: int,

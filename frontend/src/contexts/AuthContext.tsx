@@ -31,17 +31,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentUser);
       } catch (error) {
         // User not authenticated or token expired
-        apiClient.clearAuthToken();
-        
-        // Create a guest session automatically
-        try {
-          const { guest_token } = await apiClient.createGuestSession();
-          apiClient.setAuthToken(guest_token);
-          
-          const guestUser = await apiClient.getCurrentUser();
-          setUser(guestUser);
-        } catch (guestError) {
-          console.error('Failed to create guest session:', guestError);
+        // Only create a new guest session if we don't have any token
+        const existingToken = localStorage.getItem('auth_token');
+        if (!existingToken) {
+          try {
+            const { guest_token } = await apiClient.createGuestSession();
+            apiClient.setAuthToken(guest_token);
+            
+            const guestUser = await apiClient.getCurrentUser();
+            setUser(guestUser);
+          } catch (guestError) {
+            console.error('Failed to create guest session:', guestError);
+          }
+        } else {
+          // Clear the invalid token
+          apiClient.clearAuthToken();
         }
       } finally {
         setLoading(false);

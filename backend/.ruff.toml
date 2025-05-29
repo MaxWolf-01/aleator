@@ -1,6 +1,12 @@
 line-length = 120
 target-version = "py312"
 fix = true
+
+[lint]
+select = [
+    "I", # import sorting
+    "D", # enable pydocstyle rules, adhering to google convention (see below)
+]
 ignore = [
     "D100", # missing docstring in public module
     "D101", # missing docstring in public class
@@ -12,12 +18,6 @@ ignore = [
     "D107", # missing docstring in __init__ method
     "D205", # 1 blank line required between summary line and description
     "D417", # don't require documentation for every function param
-]
-
-[lint]
-select = [
-    "I", # import sorting
-    "D", # enable pydocstyle rules, adhering to google convention (see below)
 ]
 
 [lint.pydocstyle]
