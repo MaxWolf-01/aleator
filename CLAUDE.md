@@ -199,6 +199,36 @@
 - **Immediate actions**: No artificial delays on dice rolls
 - **Chart integration**: Each card shows its own progress/compliance chart inline
 
+ For extra context, the original idea tweet:
+   A recent dilemma: how to eat less sweet food but still have it in moderation? My solution: Have it with prob 2/3. Abiding
+   by the RNG is far easier than resisting temptation! This is surprisingly general! Probabilistic dieting? Vegetarianism? 
+  Half the moral benefits, far easier At least personally, I would find "toss a coin at each meal for whether to have meat" 
+  more than twice as easy as cutting it entirely. Note: this doesn't work if you can re-roll immediately after - for snacks 
+  I can have any time I do one random pick a day, one a meal is also fine I also recommend carrying dice around in your 
+  pocket, or having a random number generator on your watch or phone - makes this way easier to do whenever. This is also 
+  very useful for analysis paralysis, eg what to eat for dinner or wear I would also be very curious if this helps people 
+  cut back on drugs like alcohol/tobacco/etc. You can also change the probability over time, eg if giving something up feels
+   really hard, you can do it at 90% each day, and reduce that by 1% every day until it reaches 0 in 3 months.
+=>
+  1. Pending Roll Persistence
+  Losing the confirmation on refresh enables cheating. The roll should be stored as "pending" in
+  the database until confirmed. This way:
+  - Roll happens → stored as pending
+  - Refresh → confirmation dialog reappears
+  - Can't roll again until you confirm follow-through
+  - Prevents "refresh until favorable outcome" abuse
+  2. Re-roll Limits
+  Based on the tweet's examples, I'd suggest configurable intervals per decision:
+  - Time-based cooldowns: "Can roll every X hours/days"
+    - Dessert decision: once per day
+    - Meal choices: once per meal (~4-6 hours)
+    - Habit decisions: configurable (daily/weekly)
+  - NOT occurrence-based caps (e.g., "5 rolls per month")
+    - Goes against the "set and forget" philosophy
+    - Adds cognitive load of tracking remaining rolls
+  The sweet spot seems to be simple time intervals that match natural decision points (meals, days, weeks). Users set it
+  once based on their use case and the app enforces it consistently.
+
 ## Debugging Commands & Solutions
 - **Add shadcn components**: `bunx shadcn@latest add [component-name]`
 - **Install dependencies with bun**: `bun add [package-name]`

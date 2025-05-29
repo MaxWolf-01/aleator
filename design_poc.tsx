@@ -798,9 +798,7 @@ const ProbabilisticDecisionApp = () => {
                                 {decision.lastRoll ? decision.yesText : decision.noText}
                               </span>
                             </div>
-                            <p className="text-sm opacity-90">
-                              {decision.lastRoll ? "The dice have spoken ✨" : "Save it for another time 🌙"}
-                            </p>
+                            <p className="text-sm opacity-90">Alea iacta est!</p>
                           </>
                         ) : (
                           <>

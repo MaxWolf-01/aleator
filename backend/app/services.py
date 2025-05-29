@@ -224,3 +224,15 @@ async def confirm_roll(roll: Roll, followed: bool, session: AsyncSession) -> Rol
     await session.commit()
     await session.refresh(roll)
     return roll
+
+
+async def get_pending_roll(decision_id: int, user: User, session: AsyncSession) -> Optional[Roll]:
+    """Get the most recent pending roll for a decision, if any exists."""
+    statement = (
+        select(Roll)
+        .join(Decision)
+        .where(Roll.decision_id == decision_id, Decision.user_id == user.id, Roll.followed.is_(None))
+        .order_by(Roll.created_at.desc())
+    )
+    result = await session.exec(statement)
+    return result.first()

@@ -18,6 +18,7 @@ from app.services import (
     confirm_roll,
     create_decision,
     get_decision_by_id,
+    get_pending_roll,
     get_user_decisions,
     roll_decision,
     update_decision,
@@ -81,6 +82,24 @@ async def update_decision_endpoint(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.get("/{decision_id}/pending-roll", response_model=RollResult)
+async def get_decision_pending_roll(
+    decision_id: int,
+    current_user: User = Depends(get_current_active_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Get the pending roll for a decision, if any."""
+    decision = await get_decision_by_id(decision_id, current_user, session)
+    if not decision:
+        raise HTTPException(status_code=404, detail="Decision not found")
+
+    pending_roll = await get_pending_roll(decision_id, current_user, session)
+    if not pending_roll:
+        raise HTTPException(status_code=404, detail="No pending roll found")
+
+    return pending_roll
+
+
 @router.post("/{decision_id}/roll", response_model=RollResult)
 async def roll_decision_endpoint(
     decision_id: int,
@@ -91,6 +110,11 @@ async def roll_decision_endpoint(
     decision = await get_decision_by_id(decision_id, current_user, session)
     if not decision:
         raise HTTPException(status_code=404, detail="Decision not found")
+
+    # Check if there's already a pending roll
+    pending_roll = await get_pending_roll(decision_id, current_user, session)
+    if pending_roll:
+        raise HTTPException(status_code=400, detail="You have a pending roll that must be confirmed first")
 
     try:
         roll = await roll_decision(decision, session)

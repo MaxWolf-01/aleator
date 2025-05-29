@@ -142,6 +142,10 @@ class ApiClient {
     });
   }
 
+  async getPendingRoll(id: string) {
+    return this.request(`/api/v1/decisions/${id}/pending-roll`);
+  }
+
   async confirmFollowThrough(decisionId: string, rollId: string, followed: boolean) {
     return this.request(`/api/v1/decisions/${decisionId}/rolls/${rollId}/confirm`, {
       method: 'POST',

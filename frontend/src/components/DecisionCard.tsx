@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,10 +54,38 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
+  // Fetch pending roll on mount
+  useEffect(() => {
+    const fetchPendingRoll = async () => {
+      try {
+        const pending = await apiClient.getPendingRoll(decision.id) as Roll;
+        setPendingRoll(pending);
+      } catch (error) {
+        // No pending roll found, which is fine
+      }
+    };
+    
+    fetchPendingRoll();
+  }, [decision.id]);
+
   const rollMutation = useMutation<Roll, Error, void>({
     mutationFn: () => apiClient.rollDecision(decision.id) as Promise<Roll>,
     onSuccess: (roll: Roll) => {
       setPendingRoll(roll);
+    },
+    onError: (error) => {
+      // If there's a pending roll error, try to fetch it
+      if (error.message.includes("pending roll")) {
+        const fetchPending = async () => {
+          try {
+            const pending = await apiClient.getPendingRoll(decision.id) as Roll;
+            setPendingRoll(pending);
+          } catch {
+            // Ignore if we can't fetch it
+          }
+        };
+        fetchPending();
+      }
     },
   });
 
