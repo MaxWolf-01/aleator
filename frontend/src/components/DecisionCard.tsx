@@ -10,7 +10,7 @@ import {
   Plus, Minus, BarChart3, Edit2, Trash2, 
   CheckCircle, XCircle
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Area } from 'recharts';
+import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Area } from 'recharts';
 
 interface DecisionCardProps {
   decision: DecisionWithDetails;
@@ -74,18 +74,36 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
     return <Dice6 className={iconClass} />;
   };
 
-  // Mock history data for now - will be replaced with real data
-  const mockHistory = [
-    { decision: "#1", probability: 80, followThrough: 85 },
-    { decision: "#2", probability: 75, followThrough: 87 },
-    { decision: "#3", probability: 70, followThrough: 91 },
-    { decision: "#4", probability: decision.binary_decision?.probability || 50, followThrough: 89 },
-  ];
-
-  // Calculate stats
-  const totalRolls = decision.rolls?.length || 0;
-  const followedCount = decision.rolls?.filter(r => r.followed).length || 0;
+  // Calculate stats - only count confirmed rolls (where followed is not null)
+  const confirmedRolls = decision.rolls?.filter(r => r.followed !== null) || [];
+  const totalRolls = confirmedRolls.length;
+  const followedCount = confirmedRolls.filter(r => r.followed === true).length;
   const followThroughRate = totalRolls > 0 ? Math.round((followedCount / totalRolls) * 100) : 0;
+
+  // Generate chart data from confirmed rolls only
+  const chartData = confirmedRolls.slice(-10).map((roll, index) => {
+    const allRollsUpToThis = decision.rolls!.slice(0, decision.rolls!.indexOf(roll) + 1);
+    const confirmedUpToThis = allRollsUpToThis.filter(r => r.followed !== null);
+    const followedUpToThis = confirmedUpToThis.filter(r => r.followed === true).length;
+    const followThroughRateAtPoint = confirmedUpToThis.length > 0 
+      ? Math.round((followedUpToThis / confirmedUpToThis.length) * 100) 
+      : 0;
+    
+    return {
+      decision: `#${index + 1}`,
+      probability: decision.binary_decision?.probability || 50, // This will need probability history
+      followThrough: followThroughRateAtPoint
+    };
+  });
+
+  // If no rolls yet, show placeholder data
+  if (chartData.length === 0) {
+    chartData.push({
+      decision: "No rolls yet",
+      probability: decision.binary_decision?.probability || 50,
+      followThrough: 0
+    });
+  }
 
   return (
     <Card className="matsu-card relative overflow-hidden">
@@ -219,7 +237,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
               {/* Show if probability has been adjusted but not saved */}
               {localProbability !== decision.binary_decision?.probability && (
                 <p className="text-xs text-[oklch(0.51_0.077_74.3)] text-center">
-                  Probability adjusted • Will save on next follow-through
+                  Probability adjusted • Will save on next confirmed dice roll
                 </p>
               )}
             </div>
@@ -246,7 +264,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
             
             <div className="h-32 md:h-36">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={mockHistory} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.74 0.063 80.8)" opacity={0.3} />
                   <XAxis 
                     dataKey="decision" 
@@ -281,7 +299,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
                       borderRadius: '0.625rem',
                       fontSize: '12px'
                     }}
-                    formatter={(value: any, name: any) => [
+                    formatter={(value: number | string, name: string) => [
                       `${value}%`, 
                       name === 'probability' ? 'Target %' : 'Follow-through %'
                     ]}

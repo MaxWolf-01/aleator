@@ -69,6 +69,7 @@ async def create_decision(user: User, decision_data: DecisionCreate, session: As
         .options(
             selectinload(Decision.binary_decision),
             selectinload(Decision.multi_choice_decision).selectinload(MultiChoiceDecision.choices),
+            selectinload(Decision.rolls),
         )
     )
     result = await session.exec(statement)
@@ -85,6 +86,7 @@ async def get_user_decisions(user: User, session: AsyncSession) -> list[Decision
         .options(
             selectinload(Decision.binary_decision),
             selectinload(Decision.multi_choice_decision).selectinload(MultiChoiceDecision.choices),
+            selectinload(Decision.rolls),
         )
         .order_by(Decision.created_at.desc())
     )
@@ -102,6 +104,7 @@ async def get_decision_by_id(decision_id: int, user: User, session: AsyncSession
         .options(
             selectinload(Decision.binary_decision),
             selectinload(Decision.multi_choice_decision).selectinload(MultiChoiceDecision.choices),
+            selectinload(Decision.rolls),
         )
     )
     result = await session.exec(statement)
@@ -138,6 +141,7 @@ async def update_decision(decision: Decision, update_data: DecisionUpdate, sessi
         .options(
             selectinload(Decision.binary_decision),
             selectinload(Decision.multi_choice_decision).selectinload(MultiChoiceDecision.choices),
+            selectinload(Decision.rolls),
         )
     )
     result = await session.exec(statement)

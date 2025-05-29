@@ -6,7 +6,14 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.auth import get_current_active_user
 from app.db import get_db_session
 from app.models import Roll, User
-from app.schemas import DecisionCreate, DecisionResponse, DecisionUpdate, RollConfirmation, RollResult
+from app.schemas import (
+    DecisionCreate,
+    DecisionResponse,
+    DecisionUpdate,
+    DecisionWithRollsResponse,
+    RollConfirmation,
+    RollResult,
+)
 from app.services import (
     confirm_roll,
     create_decision,
@@ -33,7 +40,7 @@ async def create_new_decision(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/", response_model=List[DecisionResponse])
+@router.get("/", response_model=List[DecisionWithRollsResponse])
 async def get_decisions(
     current_user: User = Depends(get_current_active_user), session: AsyncSession = Depends(get_db_session)
 ):
@@ -42,7 +49,7 @@ async def get_decisions(
     return decisions
 
 
-@router.get("/{decision_id}", response_model=DecisionResponse)
+@router.get("/{decision_id}", response_model=DecisionWithRollsResponse)
 async def get_decision(
     decision_id: int,
     current_user: User = Depends(get_current_active_user),

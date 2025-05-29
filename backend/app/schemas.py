@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -58,13 +57,13 @@ class MultiChoiceDecisionCreate(BaseModel):
 class DecisionCreate(BaseModel):
     title: str = Field(max_length=200)
     type: DecisionType
-    binary_data: Optional[BinaryDecisionCreate] = None
-    multi_choice_data: Optional[MultiChoiceDecisionCreate] = None
+    binary_data: BinaryDecisionCreate | None = None
+    multi_choice_data: MultiChoiceDecisionCreate | None = None
 
 
 class DecisionUpdate(BaseModel):
-    title: Optional[str] = Field(None, max_length=200)
-    probability: Optional[int] = Field(None, ge=1, le=99)  # For binary decisions
+    title: str | None = Field(None, max_length=200)
+    probability: int | None = Field(None, ge=1, le=99)  # For binary decisions
 
 
 class BinaryDecisionResponse(BaseModel):
@@ -89,8 +88,16 @@ class DecisionResponse(BaseModel):
     type: DecisionType
     created_at: datetime
     updated_at: datetime
-    binary_decision: Optional[BinaryDecisionResponse] = None
-    multi_choice_decision: Optional[MultiChoiceDecisionResponse] = None
+    binary_decision: BinaryDecisionResponse | None = None
+    multi_choice_decision: MultiChoiceDecisionResponse | None = None
+
+
+class RollResponse(BaseModel):
+    id: int
+    decision_id: int
+    result: str
+    followed: bool | None
+    created_at: datetime
 
 
 class RollResult(BaseModel):
@@ -101,3 +108,14 @@ class RollResult(BaseModel):
 
 class RollConfirmation(BaseModel):
     followed: bool
+
+
+class DecisionWithRollsResponse(BaseModel):
+    id: int
+    title: str
+    type: DecisionType
+    created_at: datetime
+    updated_at: datetime
+    binary_decision: BinaryDecisionResponse | None = None
+    multi_choice_decision: MultiChoiceDecisionResponse | None = None
+    rolls: list[RollResponse] = []
