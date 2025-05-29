@@ -360,14 +360,22 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
                 <div className="flex gap-2 justify-center">
                   <Button
                     onClick={() => handleConfirm(true)}
-                    className="bg-white/20 hover:bg-white/30 border border-current flex-1 md:flex-none min-h-[44px]"
+                    className={`flex-1 md:flex-none min-h-[44px] font-medium border-2 ${
+                      pendingRoll.result === "yes"
+                        ? "bg-[oklch(0.95_0.02_140)] hover:bg-[oklch(0.98_0.01_140)] border-[oklch(0.65_0.08_140)] text-[oklch(0.35_0.05_140)]"
+                        : "bg-[oklch(0.96_0.02_25)] hover:bg-[oklch(0.98_0.01_25)] border-[oklch(0.70_0.06_25)] text-[oklch(0.40_0.05_25)]"
+                    }`}
                     disabled={confirmMutation.isPending}
                   >
                     ✓ Yes, I did
                   </Button>
                   <Button
                     onClick={() => handleConfirm(false)}
-                    className="bg-white/20 hover:bg-white/30 border border-current flex-1 md:flex-none min-h-[44px]"
+                    className={`flex-1 md:flex-none min-h-[44px] font-medium border-2 ${
+                      pendingRoll.result === "yes"
+                        ? "bg-[oklch(0.35_0.05_140)]/8 hover:bg-[oklch(0.35_0.05_140)]/15 border-[oklch(0.65_0.06_140)] text-[oklch(0.35_0.05_140)]"
+                        : "bg-[oklch(0.35_0.05_25)]/8 hover:bg-[oklch(0.35_0.05_25)]/15 border-[oklch(0.70_0.06_25)] text-[oklch(0.45_0.05_25)]"
+                    }`}
                     disabled={confirmMutation.isPending}
                   >
                     ✗ No, I didn't
