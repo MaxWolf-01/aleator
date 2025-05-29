@@ -58,6 +58,7 @@ export interface DecisionWithDetails extends Decision {
   binary_decision?: BinaryDecision;
   multi_choice_decision?: MultiChoiceDecision;
   rolls?: Roll[];
+  probability_history?: ProbabilityHistory[];
 }
 
 // Roll and Tracking Types

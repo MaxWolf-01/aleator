@@ -105,6 +105,13 @@ class RollResponse(BaseModel):
     created_at: datetime
 
 
+class ProbabilityHistoryResponse(BaseModel):
+    id: int
+    decision_id: int
+    probability: int
+    changed_at: datetime
+
+
 class RollResult(BaseModel):
     id: int
     result: str
@@ -125,3 +132,4 @@ class DecisionWithRollsResponse(BaseModel):
     binary_decision: BinaryDecisionResponse | None = None
     multi_choice_decision: MultiChoiceDecisionResponse | None = None
     rolls: list[RollResponse] = []
+    probability_history: list[ProbabilityHistoryResponse] = []

@@ -40,6 +40,13 @@ async def create_decision(user: User, decision_data: DecisionCreate, session: As
             no_text=decision_data.binary_data.no_text,
         )
         session.add(binary_decision)
+        
+        # Add initial probability history entry
+        prob_history = ProbabilityHistory(
+            decision_id=decision.id,
+            probability=decision_data.binary_data.probability
+        )
+        session.add(prob_history)
 
     elif decision_data.type == DecisionType.MULTI_CHOICE:
         if not decision_data.multi_choice_data:
@@ -69,6 +76,7 @@ async def create_decision(user: User, decision_data: DecisionCreate, session: As
             selectinload(Decision.binary_decision),
             selectinload(Decision.multi_choice_decision).selectinload(MultiChoiceDecision.choices),
             selectinload(Decision.rolls),
+            selectinload(Decision.probability_history),
         )
     )
     result = await session.exec(statement)
@@ -86,6 +94,7 @@ async def get_user_decisions(user: User, session: AsyncSession) -> list[Decision
             selectinload(Decision.binary_decision),
             selectinload(Decision.multi_choice_decision).selectinload(MultiChoiceDecision.choices),
             selectinload(Decision.rolls),
+            selectinload(Decision.probability_history),
         )
         .order_by(Decision.created_at.desc())
     )
@@ -104,6 +113,7 @@ async def get_decision_by_id(decision_id: int, user: User, session: AsyncSession
             selectinload(Decision.binary_decision),
             selectinload(Decision.multi_choice_decision).selectinload(MultiChoiceDecision.choices),
             selectinload(Decision.rolls),
+            selectinload(Decision.probability_history),
         )
     )
     result = await session.exec(statement)
@@ -152,6 +162,7 @@ async def update_decision(decision: Decision, update_data: DecisionUpdate, sessi
             selectinload(Decision.binary_decision),
             selectinload(Decision.multi_choice_decision).selectinload(MultiChoiceDecision.choices),
             selectinload(Decision.rolls),
+            selectinload(Decision.probability_history),
         )
     )
     result = await session.exec(statement)

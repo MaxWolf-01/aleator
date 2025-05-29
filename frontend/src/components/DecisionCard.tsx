@@ -19,6 +19,7 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  History,
 } from "lucide-react";
 import {
   Line,
@@ -55,6 +56,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [cooldownEndsAt, setCooldownEndsAt] = useState<Date | null>(null);
+  const [showFullHistory, setShowFullHistory] = useState(false);
 
   // Fetch pending roll and check cooldown on mount
   useEffect(() => {
@@ -198,7 +200,11 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
     totalRolls > 0 ? Math.round((followedCount / totalRolls) * 100) : 0;
 
   // Generate chart data from confirmed rolls only
-  const chartData = confirmedRolls.slice(-10).map((roll, index) => {
+  const rollsToShow = showFullHistory ? confirmedRolls : confirmedRolls.slice(-10);
+  const startIndex = showFullHistory ? 0 : Math.max(0, confirmedRolls.length - 10);
+  
+  const chartData = rollsToShow.map((roll, index) => {
+    const actualIndex = startIndex + index;
     const allRollsUpToThis = decision.rolls!.slice(
       0,
       decision.rolls!.indexOf(roll) + 1,
@@ -214,9 +220,31 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
         ? Math.round((followedUpToThis / confirmedUpToThis.length) * 100)
         : 0;
 
+    // Find the probability at the time of this roll
+    const rollDate = new Date(roll.created_at);
+    const probHistory = decision.probability_history || [];
+    const relevantHistory = probHistory
+      .filter(ph => new Date(ph.changed_at) <= rollDate)
+      .sort((a, b) => new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime());
+    const probabilityAtRoll = relevantHistory[0]?.probability || decision.binary_decision?.probability || 50;
+
+    // Format date intelligently
+    const formatDate = () => {
+      const today = new Date();
+      const diff = today.getTime() - rollDate.getTime();
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      
+      if (days === 0) return "Today";
+      if (days === 1) return "Yesterday";
+      if (days < 7) return `${days}d ago`;
+      if (days < 30) return `${Math.floor(days / 7)}w ago`;
+      if (days < 365) return rollDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return rollDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    };
+
     return {
-      decision: `#${index + 1}`,
-      probability: decision.binary_decision?.probability || 50, // This will need probability history
+      decision: showFullHistory && rollsToShow.length > 10 ? formatDate() : `#${actualIndex + 1}`,
+      probability: probabilityAtRoll,
       followThrough: followThroughRateAtPoint,
     };
   });
@@ -439,9 +467,22 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
           {/* Integrated Charts - only show if there's data */}
           {chartData.length > 0 && (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <BarChart3 className="w-4 h-4" />
-                <span>Progress & Follow-through</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <BarChart3 className="w-4 h-4" />
+                  <span>Progress & Follow-through</span>
+                </div>
+                {confirmedRolls.length > 10 && (
+                  <Button
+                    onClick={() => setShowFullHistory(!showFullHistory)}
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2 text-xs"
+                  >
+                    <History className="w-3 h-3 mr-1" />
+                    {showFullHistory ? "Recent" : "All"}
+                  </Button>
+                )}
               </div>
 
               <div className="h-32 md:h-36">
