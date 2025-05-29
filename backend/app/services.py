@@ -38,10 +38,6 @@ async def create_decision(user: User, decision_data: DecisionCreate, session: As
         )
         session.add(binary_decision)
 
-        # Record initial probability in history
-        prob_history = ProbabilityHistory(decision_id=decision.id, probability=decision_data.binary_data.probability)
-        session.add(prob_history)
-
     elif decision_data.type == DecisionType.MULTI_CHOICE:
         if not decision_data.multi_choice_data:
             raise ValueError("Multi-choice decision data is required")

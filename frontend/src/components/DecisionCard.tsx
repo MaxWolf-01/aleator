@@ -1,16 +1,35 @@
-import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { DecisionWithDetails, Roll } from '@/types';
-import { apiClient } from '@/lib/api';
-import { 
-  Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, 
-  Plus, Minus, BarChart3, Edit2, Trash2,
-  CheckCircle, XCircle
-} from 'lucide-react';
-import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Area } from 'recharts';
-import { EditDecisionDialog } from './EditDecisionDialog';
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { DecisionWithDetails, Roll } from "@/types";
+import { apiClient } from "@/lib/api";
+import {
+  Dice1,
+  Dice2,
+  Dice3,
+  Dice4,
+  Dice5,
+  Dice6,
+  Plus,
+  Minus,
+  BarChart3,
+  Edit2,
+  Trash2,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
+import {
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ComposedChart,
+  Area,
+} from "recharts";
+import { EditDecisionDialog } from "./EditDecisionDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +39,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 
 interface DecisionCardProps {
   decision: DecisionWithDetails;
@@ -30,7 +49,7 @@ interface DecisionCardProps {
 export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
   const [pendingRoll, setPendingRoll] = useState<Roll | null>(null);
   const [localProbability, setLocalProbability] = useState(
-    decision.binary_decision?.probability || 50
+    decision.binary_decision?.probability || 50,
   );
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -44,17 +63,24 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
 
   const confirmMutation = useMutation({
     mutationFn: async (followed: boolean) => {
-      if (!pendingRoll) throw new Error('No pending roll');
-      
+      if (!pendingRoll) throw new Error("No pending roll");
+
       // Update probability along with confirmation
-      const probabilityChanged = localProbability !== decision.binary_decision?.probability;
-      
-      if (probabilityChanged && decision.type === 'binary') {
-        await apiClient.updateDecision(decision.id, { probability: localProbability });
+      const probabilityChanged =
+        localProbability !== decision.binary_decision?.probability;
+
+      if (probabilityChanged && decision.type === "binary") {
+        await apiClient.updateDecision(decision.id, {
+          probability: localProbability,
+        });
       }
-      
+
       // Confirm the roll with both decision ID and roll ID
-      return apiClient.confirmFollowThrough(decision.id, pendingRoll.id, followed);
+      return apiClient.confirmFollowThrough(
+        decision.id,
+        pendingRoll.id,
+        followed,
+      );
     },
     onSuccess: () => {
       setPendingRoll(null);
@@ -101,35 +127,40 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
   };
 
   // Calculate stats - only count confirmed rolls (where followed is not null)
-  const confirmedRolls = decision.rolls?.filter(r => r.followed !== null) || [];
+  const confirmedRolls =
+    decision.rolls?.filter((r) => r.followed !== null) || [];
   const totalRolls = confirmedRolls.length;
-  const followedCount = confirmedRolls.filter(r => r.followed === true).length;
-  const followThroughRate = totalRolls > 0 ? Math.round((followedCount / totalRolls) * 100) : 0;
+  const followedCount = confirmedRolls.filter(
+    (r) => r.followed === true,
+  ).length;
+  const followThroughRate =
+    totalRolls > 0 ? Math.round((followedCount / totalRolls) * 100) : 0;
 
   // Generate chart data from confirmed rolls only
   const chartData = confirmedRolls.slice(-10).map((roll, index) => {
-    const allRollsUpToThis = decision.rolls!.slice(0, decision.rolls!.indexOf(roll) + 1);
-    const confirmedUpToThis = allRollsUpToThis.filter(r => r.followed !== null);
-    const followedUpToThis = confirmedUpToThis.filter(r => r.followed === true).length;
-    const followThroughRateAtPoint = confirmedUpToThis.length > 0 
-      ? Math.round((followedUpToThis / confirmedUpToThis.length) * 100) 
-      : 0;
-    
+    const allRollsUpToThis = decision.rolls!.slice(
+      0,
+      decision.rolls!.indexOf(roll) + 1,
+    );
+    const confirmedUpToThis = allRollsUpToThis.filter(
+      (r) => r.followed !== null,
+    );
+    const followedUpToThis = confirmedUpToThis.filter(
+      (r) => r.followed === true,
+    ).length;
+    const followThroughRateAtPoint =
+      confirmedUpToThis.length > 0
+        ? Math.round((followedUpToThis / confirmedUpToThis.length) * 100)
+        : 0;
+
     return {
       decision: `#${index + 1}`,
       probability: decision.binary_decision?.probability || 50, // This will need probability history
-      followThrough: followThroughRateAtPoint
+      followThrough: followThroughRateAtPoint,
     };
   });
 
-  // If no rolls yet, show placeholder data
-  if (chartData.length === 0) {
-    chartData.push({
-      decision: "No rolls yet",
-      probability: decision.binary_decision?.probability || 50,
-      followThrough: 0
-    });
-  }
+  // Don't show any chart data if no rolls yet
 
   return (
     <Card className="matsu-card relative overflow-hidden">
@@ -138,7 +169,9 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <CardTitle className="text-2xl font-semibold">{decision.title}</CardTitle>
+                <CardTitle className="text-2xl font-semibold">
+                  {decision.title}
+                </CardTitle>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setEditDialogOpen(true)}
@@ -162,34 +195,29 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
 
           {/* Prominent Outcome Display */}
           {pendingRoll && (
-            <div className={`p-4 rounded-xl mb-4 text-center ${
-              pendingRoll.result === 'yes' 
-                ? 'result-yes' 
-                : 'result-no'
-            }`}>
+            <div
+              className={`p-4 rounded-xl mb-4 text-center ${
+                pendingRoll.result === "yes" ? "result-yes" : "result-no"
+              }`}
+            >
               <div className="flex items-center justify-center gap-3 mb-1">
-                {pendingRoll.result === 'yes' ? (
+                {pendingRoll.result === "yes" ? (
                   <CheckCircle className="w-6 h-6" />
                 ) : (
                   <XCircle className="w-6 h-6" />
                 )}
                 <span className="text-2xl font-bold">
-                  {pendingRoll.result === 'yes' 
-                    ? decision.binary_decision?.yes_text || 'Yes'
-                    : decision.binary_decision?.no_text || 'No'
-                  }
+                  {pendingRoll.result === "yes"
+                    ? decision.binary_decision?.yes_text || "Yes"
+                    : decision.binary_decision?.no_text || "No"}
                 </span>
               </div>
-              <p className="text-sm opacity-90">
-                {pendingRoll.result === 'yes' 
-                  ? "The dice have spoken ✨" 
-                  : "Save it for another time 🌙"
-                }
-              </p>
 
               {/* Follow-through Tracking */}
               <div className="mt-4 space-y-3">
-                <p className="text-sm font-medium">Did you follow this decision?</p>
+                <p className="text-sm font-medium">
+                  Did you follow this decision?
+                </p>
                 <div className="flex gap-2 justify-center">
                   <Button
                     onClick={() => handleConfirm(true)}
@@ -207,32 +235,38 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
                   </Button>
                 </div>
               </div>
-              
+
               {/* Show if probability was adjusted */}
               {localProbability !== decision.binary_decision?.probability && (
                 <p className="text-xs opacity-75 mt-2">
-                  Probability will update from {decision.binary_decision?.probability}% to {localProbability}%
+                  Probability will update from{" "}
+                  {decision.binary_decision?.probability}% to {localProbability}
+                  %
                 </p>
               )}
             </div>
           )}
         </CardHeader>
-        
+
         <CardContent className="space-y-6">
           {/* Probability & Roll Section for Binary Decisions */}
-          {decision.type === 'binary' && !pendingRoll && (
+          {decision.type === "binary" && !pendingRoll && (
             <div className="space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
                   {getDiceIcon(localProbability)}
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl md:text-3xl font-bold">{localProbability}%</span>
+                      <span className="text-2xl md:text-3xl font-bold">
+                        {localProbability}%
+                      </span>
                     </div>
-                    <span className="text-xs text-[oklch(0.51_0.077_74.3)]">probability</span>
+                    <span className="text-xs text-[oklch(0.51_0.077_74.3)]">
+                      probability
+                    </span>
                   </div>
                 </div>
-                
+
                 {/* Probability adjustment buttons */}
                 <div className="flex items-center gap-2">
                   <Button
@@ -251,7 +285,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
                   </Button>
                 </div>
               </div>
-              
+
               {/* Show if probability has been adjusted but not saved */}
               {localProbability !== decision.binary_decision?.probability && (
                 <p className="text-xs text-[oklch(0.51_0.077_74.3)] text-center">
@@ -263,7 +297,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
 
           {/* Roll Button */}
           {!pendingRoll && (
-            <Button 
+            <Button
               onClick={handleRoll}
               disabled={rollMutation.isPending}
               className="w-full roll-button text-lg py-6 font-bold"
@@ -273,117 +307,140 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
             </Button>
           )}
 
-          {/* Integrated Charts */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <BarChart3 className="w-4 h-4" />
-              <span>Progress & Follow-through</span>
-            </div>
-            
-            <div className="h-32 md:h-36">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.74 0.063 80.8)" opacity={0.3} />
-                  <XAxis 
-                    dataKey="decision" 
-                    stroke="oklch(0.51 0.077 74.3)" 
-                    fontSize={10}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis 
-                    yAxisId="left"
-                    stroke="oklch(0.71 0.097 111.7)" 
-                    fontSize={10}
-                    axisLine={false}
-                    tickLine={false}
-                    domain={[0, 100]}
-                    width={25}
-                  />
-                  <YAxis 
-                    yAxisId="right"
-                    orientation="right"
-                    stroke="oklch(0.75 0.12 140)" 
-                    fontSize={10}
-                    axisLine={false}
-                    tickLine={false}
-                    domain={[0, 100]}
-                    width={25}
-                  />
-                  <Tooltip 
-                    contentStyle={{
-                      backgroundColor: 'oklch(0.92 0.042 83.6)',
-                      border: '2px solid oklch(0.74 0.063 80.8)',
-                      borderRadius: '0.625rem',
-                      fontSize: '12px'
-                    }}
-                    formatter={(value: number | string, name: string) => [
-                      `${value}%`, 
-                      name === 'probability' ? 'Target %' : 'Follow-through %'
-                    ]}
-                  />
-                  
-                  <Area
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="followThrough"
-                    fill="oklch(0.75 0.12 140)"
-                    fillOpacity={0.2}
-                    stroke="oklch(0.75 0.12 140)"
-                    strokeWidth={2}
-                  />
-                  
-                  <Line 
-                    yAxisId="left"
-                    type="monotone" 
-                    dataKey="probability" 
-                    stroke="oklch(0.71 0.097 111.7)" 
-                    strokeWidth={3}
-                    dot={{ fill: 'oklch(0.71 0.097 111.7)', strokeWidth: 2, r: 3 }}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-            
-            {/* Legend & Stats */}
-            <div className="flex justify-between items-center text-xs text-[oklch(0.51_0.077_74.3)]">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'oklch(0.71 0.097 111.7)' }}></div>
-                  <span>Target</span>
+          {/* Integrated Charts - only show if there's data */}
+          {chartData.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <BarChart3 className="w-4 h-4" />
+                <span>Progress & Follow-through</span>
+              </div>
+
+              <div className="h-32 md:h-36">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart
+                    data={chartData}
+                    margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="oklch(0.74 0.063 80.8)"
+                      opacity={0.3}
+                    />
+                    <XAxis
+                      dataKey="decision"
+                      stroke="oklch(0.51 0.077 74.3)"
+                      fontSize={10}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      yAxisId="left"
+                      stroke="oklch(0.71 0.097 111.7)"
+                      fontSize={10}
+                      axisLine={false}
+                      tickLine={false}
+                      domain={[0, 100]}
+                      width={25}
+                    />
+                    <YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      stroke="oklch(0.75 0.12 140)"
+                      fontSize={10}
+                      axisLine={false}
+                      tickLine={false}
+                      domain={[0, 100]}
+                      width={25}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "oklch(0.92 0.042 83.6)",
+                        border: "2px solid oklch(0.74 0.063 80.8)",
+                        borderRadius: "0.625rem",
+                        fontSize: "12px",
+                      }}
+                      formatter={(value: number | string, name: string) => [
+                        `${value}%`,
+                        name === "probability"
+                          ? "Target %"
+                          : "Follow-through %",
+                      ]}
+                    />
+
+                    <Area
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="followThrough"
+                      fill="oklch(0.75 0.12 140)"
+                      fillOpacity={0.2}
+                      stroke="oklch(0.75 0.12 140)"
+                      strokeWidth={2}
+                    />
+
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="probability"
+                      stroke="oklch(0.71 0.097 111.7)"
+                      strokeWidth={3}
+                      dot={{
+                        fill: "oklch(0.71 0.097 111.7)",
+                        strokeWidth: 2,
+                        r: 3,
+                      }}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Legend & Stats */}
+              <div className="flex justify-between items-center text-xs text-[oklch(0.51_0.077_74.3)]">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1">
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: "oklch(0.71 0.097 111.7)" }}
+                    ></div>
+                    <span>Target</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: "oklch(0.75 0.12 140)" }}
+                    ></div>
+                    <span>Follow-through</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'oklch(0.75 0.12 140)' }}></div>
-                  <span>Follow-through</span>
+                <div className="text-right">
+                  <span>
+                    {totalRolls} decisions • {followThroughRate}% followed
+                  </span>
                 </div>
               </div>
-              <div className="text-right">
-                <span>{totalRolls} decisions • {followThroughRate}% followed</span>
-              </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </div>
-      
+
       <EditDecisionDialog
         decision={decision}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         onUpdate={onUpdate}
       />
-      
+
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete "{decision.title}" and all its history. 
-              This action cannot be undone.
+              This will permanently delete "{decision.title}" and all its
+              history. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleDelete}
               className="bg-[oklch(0.75_0.12_20)] hover:bg-[oklch(0.65_0.12_20)] text-white"
             >

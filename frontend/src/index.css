@@ -347,6 +347,12 @@
   font-size: 0.75rem;
 }
 
+.badge-active {
+  background: oklch(0.71 0.097 111.7);
+  color: oklch(0.98 0.005 0);
+  border: 2px solid oklch(0.59 0.096 111.8);
+}
+
 /* Soft shadow styles for depth */
 .shadow-ghibli {
   box-shadow: 0 4px 20px -2px oklch(48% .16 142 / 0.1), 

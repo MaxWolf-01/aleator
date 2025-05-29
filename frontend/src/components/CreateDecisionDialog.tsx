@@ -4,13 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -82,156 +75,148 @@ export function CreateDecisionDialog({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Dice1 className="w-5 h-5 text-primary" />
-                New Decision
-              </CardTitle>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div className="space-y-3">
-              <Label>Type</Label>
-              <div className="flex gap-2">
-                <Badge variant="default" className="cursor-pointer">
-                  Yes/No Decision
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className="cursor-not-allowed opacity-50"
-                >
-                  Multi-choice (Coming Soon)
-                </Badge>
+      <div className="matsu-card w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="relative z-10">
+          <div className="p-6 border-b border-[oklch(0.74_0.063_80.8)]">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold flex items-center gap-2">
+                  <Dice1 className="w-5 h-5 text-[oklch(0.71_0.097_111.7)]" />
+                  New Decision
+                </h2>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
-              <Input
-                id="title"
-                placeholder="e.g., Eat meat today?"
-                {...register("title")}
-                className={errors.title ? "border-red-500" : ""}
-              />
-              {errors.title && (
-                <p className="text-sm text-red-600">{errors.title.message}</p>
-              )}
-            </div>
-
-            {/* Probability Slider */}
-            <div className="space-y-3">
-              <Label className="flex items-center justify-between">
-                <span>Probability</span>
-                <span className="font-bold text-primary">
-                  {probability[0]}%
-                </span>
-              </Label>
-              <Slider
-                value={probability}
-                onValueChange={setProbability}
-                max={99}
-                min={1}
-                step={1}
-                className="cursor-pointer"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>1%</span>
-                <span>99%</span>
-              </div>
-            </div>
-
-            {/* Yes/No Text Customization */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="yes_text">Yes Option *</Label>
-                <Input
-                  id="yes_text"
-                  placeholder="Yes"
-                  {...register("yes_text")}
-                  className={errors.yes_text ? "border-red-500" : ""}
-                />
-                {errors.yes_text && (
-                  <p className="text-sm text-red-600">
-                    {errors.yes_text.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="no_text">No Option *</Label>
-                <Input
-                  id="no_text"
-                  placeholder="No"
-                  {...register("no_text")}
-                  className={errors.no_text ? "border-red-500" : ""}
-                />
-                {errors.no_text && (
-                  <p className="text-sm text-red-600">
-                    {errors.no_text.message}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Preview */}
-            <div className="p-4 bg-forest-50 rounded-lg border border-forest-200">
-              <Label className="text-sm font-medium text-forest-800 block mb-2">
-                Preview
-              </Label>
-              <div className="text-sm text-forest-700">
-                <p className="font-medium">Decision: Your title here...</p>
-                <p>
-                  {probability[0]}% chance of "Yes" → {100 - probability[0]}%
-                  chance of "No"
-                </p>
-              </div>
-            </div>
-
-            {/* Form Actions */}
-            <div className="flex gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
+              <button
                 onClick={() => onOpenChange(false)}
-                className="flex-1"
+                className="w-8 h-8 rounded-md bg-[oklch(0.88_0.035_83.6)] hover:bg-[oklch(0.84_0.045_83.6)] border border-[oklch(0.78_0.063_80.8)] flex items-center justify-center text-[oklch(0.41_0.077_78.9)] hover:text-[oklch(0.31_0.077_78.9)] transition-all"
               >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={createMutation.isPending}
-                className="flex-1"
-              >
-                {createMutation.isPending ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                    Creating...
-                  </div>
-                ) : (
-                  <>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Decision
-                  </>
-                )}
-              </Button>
+                <X className="w-4 h-4" />
+              </button>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+          </div>
+
+          <div className="p-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <div className="space-y-3">
+                <Label className="text-[oklch(0.51_0.077_74.3)]">Type</Label>
+                <div className="flex gap-2">
+                  <Badge className="badge-active cursor-pointer">
+                    Yes/No Decision
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="cursor-not-allowed opacity-50 border-[oklch(0.74_0.063_80.8)] text-[oklch(0.51_0.077_74.3)]"
+                  >
+                    Multi-choice (Coming Soon)
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="title" className="text-[oklch(0.51_0.077_74.3)]">Title *</Label>
+                <Input
+                  id="title"
+                  placeholder="e.g., Eat meat today?"
+                  {...register("title")}
+                  className={`border-2 border-[oklch(0.74_0.063_80.8)] bg-[oklch(0.96_0.025_83.6)] focus:border-[oklch(0.71_0.097_111.7)] ${
+                    errors.title ? "border-[oklch(0.75_0.12_20)]" : ""
+                  }`}
+                />
+                {errors.title && (
+                  <p className="text-sm text-[oklch(0.75_0.12_20)]">{errors.title.message}</p>
+                )}
+              </div>
+
+              {/* Probability Slider */}
+              <div className="space-y-3">
+                <Label className="flex items-center justify-between text-[oklch(0.51_0.077_74.3)]">
+                  <span>Probability</span>
+                  <span className="font-bold text-[oklch(0.71_0.097_111.7)]">
+                    {probability[0]}%
+                  </span>
+                </Label>
+                <Slider
+                  value={probability}
+                  onValueChange={setProbability}
+                  max={99}
+                  min={1}
+                  step={1}
+                  className="cursor-pointer"
+                />
+                <div className="flex justify-between text-xs text-[oklch(0.61_0.077_74.3)]">
+                  <span>1%</span>
+                  <span>99%</span>
+                </div>
+              </div>
+
+              {/* Yes/No Text Customization */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="yes_text" className="text-[oklch(0.51_0.077_74.3)]">Yes Option *</Label>
+                  <Input
+                    id="yes_text"
+                    placeholder="Yes"
+                    {...register("yes_text")}
+                    className={`border-2 border-[oklch(0.74_0.063_80.8)] bg-[oklch(0.96_0.025_83.6)] focus:border-[oklch(0.71_0.097_111.7)] ${
+                      errors.yes_text ? "border-[oklch(0.75_0.12_20)]" : ""
+                    }`}
+                  />
+                  {errors.yes_text && (
+                    <p className="text-sm text-[oklch(0.75_0.12_20)]">
+                      {errors.yes_text.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="no_text" className="text-[oklch(0.51_0.077_74.3)]">No Option *</Label>
+                  <Input
+                    id="no_text"
+                    placeholder="No"
+                    {...register("no_text")}
+                    className={`border-2 border-[oklch(0.74_0.063_80.8)] bg-[oklch(0.96_0.025_83.6)] focus:border-[oklch(0.71_0.097_111.7)] ${
+                      errors.no_text ? "border-[oklch(0.75_0.12_20)]" : ""
+                    }`}
+                  />
+                  {errors.no_text && (
+                    <p className="text-sm text-[oklch(0.75_0.12_20)]">
+                      {errors.no_text.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Form Actions */}
+              <div className="flex gap-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  className="flex-1 border-2 border-[oklch(0.74_0.063_80.8)] bg-[oklch(0.96_0.025_83.6)] text-[oklch(0.41_0.077_78.9)] hover:bg-[oklch(0.88_0.035_83.6)]"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={createMutation.isPending}
+                  className="flex-1 matsu-button"
+                >
+                  {createMutation.isPending ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                      Creating...
+                    </div>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Decision
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
-
