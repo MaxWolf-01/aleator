@@ -7,10 +7,9 @@ os.environ["DB_AUTO_CREATE"] = "true"
 os.environ["CORS_ORIGINS"] = '["http://localhost:5173"]'
 os.environ["JWT_SECRET_KEY"] = "test_secret_key_for_testing_only"
 
-import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
