@@ -116,19 +116,27 @@ async def update_decision(decision: Decision, update_data: DecisionUpdate, sessi
     if update_data.title is not None:
         decision.title = update_data.title
 
-    # For binary decisions, update probability
-    if decision.type == DecisionType.BINARY and update_data.probability is not None:
+    # For binary decisions, update probability and text
+    if decision.type == DecisionType.BINARY:
         # Get current binary decision
         binary_statement = select(BinaryDecision).where(BinaryDecision.decision_id == decision.id)
         binary_result = await session.exec(binary_statement)
         binary_decision = binary_result.first()
 
-        if binary_decision and binary_decision.probability != update_data.probability:
-            binary_decision.probability = update_data.probability
+        if binary_decision:
+            # Update probability if provided
+            if update_data.probability is not None and binary_decision.probability != update_data.probability:
+                binary_decision.probability = update_data.probability
 
-            # Record probability change in history
-            prob_history = ProbabilityHistory(decision_id=decision.id, probability=update_data.probability)
-            session.add(prob_history)
+                # Record probability change in history
+                prob_history = ProbabilityHistory(decision_id=decision.id, probability=update_data.probability)
+                session.add(prob_history)
+
+            # Update yes/no text if provided
+            if update_data.yes_text is not None:
+                binary_decision.yes_text = update_data.yes_text
+            if update_data.no_text is not None:
+                binary_decision.no_text = update_data.no_text
 
     await session.commit()
 

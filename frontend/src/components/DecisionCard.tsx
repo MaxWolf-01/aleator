@@ -2,15 +2,25 @@ import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import type { DecisionWithDetails, Roll } from '@/types';
 import { apiClient } from '@/lib/api';
 import { 
   Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, 
-  Plus, Minus, BarChart3, Edit2, Trash2, 
+  Plus, Minus, BarChart3, Edit2, Trash2,
   CheckCircle, XCircle
 } from 'lucide-react';
 import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Area } from 'recharts';
+import { EditDecisionDialog } from './EditDecisionDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface DecisionCardProps {
   decision: DecisionWithDetails;
@@ -22,6 +32,8 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
   const [localProbability, setLocalProbability] = useState(
     decision.binary_decision?.probability || 50
   );
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const rollMutation = useMutation<Roll, Error, void>({
     mutationFn: () => apiClient.rollDecision(decision.id) as Promise<Roll>,
@@ -62,6 +74,20 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
     const newProb = Math.max(1, Math.min(99, localProbability + change));
     setLocalProbability(newProb);
     // DON'T save immediately - wait for confirmation
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await apiClient.deleteDecision(decision.id);
+    },
+    onSuccess: () => {
+      onUpdate();
+    },
+  });
+
+  const handleDelete = () => {
+    deleteMutation.mutate();
+    setDeleteDialogOpen(false);
   };
 
   const getDiceIcon = (probability: number) => {
@@ -111,34 +137,26 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <CardTitle className="text-xl">{decision.title}</CardTitle>
+              <div className="flex items-center gap-2 mb-2">
+                <CardTitle className="text-2xl font-semibold">{decision.title}</CardTitle>
                 <div className="flex items-center gap-1">
                   <button
+                    onClick={() => setEditDialogOpen(true)}
                     className="w-7 h-7 rounded-md bg-[oklch(0.88_0.035_83.6)] hover:bg-[oklch(0.84_0.045_83.6)] border border-[oklch(0.78_0.063_80.8)] flex items-center justify-center text-[oklch(0.41_0.077_78.9)] hover:text-[oklch(0.31_0.077_78.9)] transition-all"
                     title="Edit decision"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
                   <button
-                    className="w-7 h-7 rounded-md bg-[oklch(0.88_0.035_83.6)] hover:bg-[oklch(0.94_0.08_20)] border border-[oklch(0.78_0.063_80.8)] hover:border-[oklch(0.75_0.12_20)] flex items-center justify-center text-[oklch(0.41_0.077_78.9)] hover:text-[oklch(0.75_0.12_20)] transition-all"
+                    onClick={() => setDeleteDialogOpen(true)}
+                    disabled={deleteMutation.isPending}
+                    className="w-7 h-7 rounded-md bg-[oklch(0.88_0.035_83.6)] hover:bg-[oklch(0.94_0.08_20)] border border-[oklch(0.78_0.063_80.8)] hover:border-[oklch(0.75_0.12_20)] flex items-center justify-center text-[oklch(0.41_0.077_78.9)] hover:text-[oklch(0.75_0.12_20)] transition-all disabled:opacity-50"
                     title="Delete decision"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
-              <p className="text-sm text-[oklch(0.51_0.077_74.3)] mb-3">
-                {decision.binary_decision?.yes_text && decision.binary_decision?.no_text 
-                  ? `${decision.binary_decision.yes_text} or ${decision.binary_decision.no_text}`
-                  : 'Make a mindful choice'
-                }
-              </p>
-            </div>
-            <div className="ml-2">
-              <Badge className="matsu-badge px-2 py-1">
-                {decision.type === 'binary' ? 'Yes/No' : 'Choice'}
-              </Badge>
             </div>
           </div>
 
@@ -346,6 +364,34 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
           </div>
         </CardContent>
       </div>
+      
+      <EditDecisionDialog
+        decision={decision}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onUpdate={onUpdate}
+      />
+      
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{decision.title}" and all its history. 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="bg-[oklch(0.75_0.12_20)] hover:bg-[oklch(0.65_0.12_20)] text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

@@ -23,7 +23,7 @@ class User(SQLModel, table=True):
     is_guest: bool = Field(default=False)
     guest_token: str | None = Field(default=None, unique=True, index=True)
 
-    decisions: list["Decision"] = Relationship(back_populates="user")
+    decisions: list["Decision"] = Relationship(back_populates="user", cascade_delete=True)
 
 
 class Decision(SQLModel, table=True):
@@ -40,10 +40,12 @@ class Decision(SQLModel, table=True):
     )
 
     user: User = Relationship(back_populates="decisions")
-    binary_decision: Optional["BinaryDecision"] = Relationship(back_populates="decision")
-    multi_choice_decision: Optional["MultiChoiceDecision"] = Relationship(back_populates="decision")
-    rolls: list["Roll"] = Relationship(back_populates="decision")
-    probability_history: list["ProbabilityHistory"] = Relationship(back_populates="decision")
+    binary_decision: Optional["BinaryDecision"] = Relationship(back_populates="decision", cascade_delete=True)
+    multi_choice_decision: Optional["MultiChoiceDecision"] = Relationship(
+        back_populates="decision", cascade_delete=True
+    )
+    rolls: list["Roll"] = Relationship(back_populates="decision", cascade_delete=True)
+    probability_history: list["ProbabilityHistory"] = Relationship(back_populates="decision", cascade_delete=True)
 
 
 class BinaryDecision(SQLModel, table=True):
@@ -59,7 +61,7 @@ class MultiChoiceDecision(SQLModel, table=True):
     decision_id: int = Field(foreign_key="decision.id", primary_key=True)
 
     decision: Decision = Relationship(back_populates="multi_choice_decision")
-    choices: list["Choice"] = Relationship(back_populates="multi_choice_decision")
+    choices: list["Choice"] = Relationship(back_populates="multi_choice_decision", cascade_delete=True)
 
 
 class Choice(SQLModel, table=True):

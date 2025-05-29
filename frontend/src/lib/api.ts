@@ -130,6 +130,12 @@ class ApiClient {
     });
   }
 
+  async deleteDecision(id: string) {
+    return this.request(`/api/v1/decisions/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   async rollDecision(id: string) {
     return this.request(`/api/v1/decisions/${id}/roll`, {
       method: 'POST',

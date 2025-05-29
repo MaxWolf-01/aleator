@@ -64,6 +64,8 @@ class DecisionCreate(BaseModel):
 class DecisionUpdate(BaseModel):
     title: str | None = Field(None, max_length=200)
     probability: int | None = Field(None, ge=1, le=99)  # For binary decisions
+    yes_text: str | None = Field(None, max_length=100)  # For binary decisions
+    no_text: str | None = Field(None, max_length=100)  # For binary decisions
 
 
 class BinaryDecisionResponse(BaseModel):

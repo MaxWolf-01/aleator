@@ -215,3 +215,4 @@
 - **Chart synchronization**: Probability and follow-through must be in sync - saving happens together
 - **API endpoints need trailing slashes**: FastAPI redirects without them, causing issues
 - **Ruff config**: Use `[lint]` section, not top-level settings in .ruff.toml
+- **Database migrations**: During development, don't use Alembic. Just drop and recreate the database from scratch

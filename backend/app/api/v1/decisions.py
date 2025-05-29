@@ -131,3 +131,19 @@ async def confirm_decision_roll(
         return {"message": "Roll confirmed", "followed": updated_roll.followed}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/{decision_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_decision(
+    decision_id: int,
+    current_user: User = Depends(get_current_active_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Delete a decision."""
+    decision = await get_decision_by_id(decision_id, current_user, session)
+    if not decision:
+        raise HTTPException(status_code=404, detail="Decision not found")
+
+    await session.delete(decision)
+    await session.commit()
+    return None
