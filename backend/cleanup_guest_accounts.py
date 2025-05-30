@@ -6,7 +6,7 @@ Can be run as a cron job or scheduled task.
 import asyncio
 from datetime import datetime, timedelta, timezone
 
-from sqlmodel import select
+from sqlmodel import select, col
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.db import get_db_session
@@ -34,7 +34,7 @@ async def cleanup_old_guest_accounts(days_old: int = 30):
         for guest in old_guests:
             # Check for recent decisions or rolls
             decisions_stmt = (
-                select(Decision).where(Decision.user_id == guest.id).order_by(Decision.updated_at.desc()).limit(1)
+                select(Decision).where(Decision.user_id == guest.id).order_by(col(Decision.updated_at).desc()).limit(1)
             )
 
             decisions_result = await session.exec(decisions_stmt)

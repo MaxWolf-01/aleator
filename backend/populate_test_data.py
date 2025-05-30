@@ -6,7 +6,6 @@ This helps test chart x-axis formatting and date handling.
 import asyncio
 import random
 from datetime import datetime, timedelta, timezone
-from typing import List, Tuple
 
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import SQLModel, select
@@ -30,7 +29,7 @@ def create_rolls_pattern(
     start_date: datetime,
     end_date: datetime,
     probability: int = 50,
-) -> List[Tuple[Roll, ProbabilityHistory]]:
+) -> tuple[list[Roll], list[ProbabilityHistory]]:
     """Create rolls and probability history based on pattern type."""
     rolls = []
     prob_history = []

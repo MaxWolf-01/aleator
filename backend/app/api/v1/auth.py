@@ -61,6 +61,8 @@ async def login(
 async def create_guest_session(session: AsyncSession = Depends(get_db_session)):
     """Create a new guest session."""
     guest_user = await create_guest_user(session)
+    if not guest_user.guest_token:
+        raise HTTPException(status_code=500, detail="Failed to create guest token")
     return GuestTokenResponse(guest_token=guest_user.guest_token)
 
 

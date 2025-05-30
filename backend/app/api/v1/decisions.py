@@ -121,6 +121,7 @@ async def roll_decision_endpoint(
     # Check if decision is on cooldown
     is_on_cooldown, cooldown_ends_at = await check_cooldown(decision, current_user, session)
     if is_on_cooldown:
+        assert cooldown_ends_at is not None, "Cooldown end time should be set if on cooldown"
         raise HTTPException(
             status_code=400, detail=f"Decision is on cooldown. You can roll again at {cooldown_ends_at.isoformat()}"
         )

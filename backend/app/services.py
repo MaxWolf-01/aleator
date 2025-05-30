@@ -2,7 +2,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from sqlmodel import select
+from sqlmodel import select, col
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models import (
@@ -89,7 +89,7 @@ async def create_decision(user: User, decision_data: DecisionCreate, session: As
         )
     )
     result = await session.exec(statement)
-    return result.first()
+    return result.one()
 
 
 async def get_user_decisions(user: User, session: AsyncSession) -> list[Decision]:
@@ -105,7 +105,7 @@ async def get_user_decisions(user: User, session: AsyncSession) -> list[Decision
             selectinload(Decision.rolls),
             selectinload(Decision.probability_history),
         )
-        .order_by(Decision.display_order.asc(), Decision.created_at.desc())
+        .order_by(col(Decision.display_order).asc(), col(Decision.created_at).desc())
     )
     result = await session.exec(statement)
     return list(result.all())
@@ -182,7 +182,7 @@ async def update_decision(decision: Decision, update_data: DecisionUpdate, sessi
         )
     )
     result = await session.exec(statement)
-    return result.first()
+    return result.one()
 
 
 def roll_binary_decision(probability: float) -> str:
@@ -266,8 +266,8 @@ async def get_pending_roll(decision_id: int, user: User, session: AsyncSession) 
     statement = (
         select(Roll)
         .join(Decision)
-        .where(Roll.decision_id == decision_id, Decision.user_id == user.id, Roll.followed.is_(None))
-        .order_by(Roll.created_at.desc())
+        .where(Roll.decision_id == decision_id, Decision.user_id == user.id, col(Roll.followed).is_(None))
+        .order_by(col(Roll.created_at).desc())
     )
     result = await session.exec(statement)
     return result.first()
@@ -278,8 +278,8 @@ async def get_last_confirmed_roll(decision_id: int, user: User, session: AsyncSe
     statement = (
         select(Roll)
         .join(Decision)
-        .where(Roll.decision_id == decision_id, Decision.user_id == user.id, Roll.followed.is_not(None))
-        .order_by(Roll.created_at.desc())
+        .where(Roll.decision_id == decision_id, Decision.user_id == user.id, col(Roll.followed).is_not(None))
+        .order_by(col(Roll.created_at).desc())
     )
     result = await session.exec(statement)
     return result.first()
@@ -291,6 +291,8 @@ async def check_cooldown(decision: Decision, user: User, session: AsyncSession) 
         return False, None
 
     # Get the last confirmed roll
+    if decision.id is None:
+        return False, None
     last_roll = await get_last_confirmed_roll(decision.id, user, session)
     if not last_roll:
         # No previous rolls, not on cooldown
