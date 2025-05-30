@@ -4,23 +4,13 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/lib/api';
 import type { DecisionWithDetails } from '@/types';
-import { Plus, Dice1, LogOut, User } from 'lucide-react';
+import { Plus, Dice1 } from 'lucide-react';
 import { DecisionCard } from '@/components/DecisionCard';
 import { CreateDecisionDialog } from '@/components/CreateDecisionDialog';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Badge } from '@/components/ui/badge';
-import { useNavigate } from 'react-router-dom';
+import { AccountDropdown } from '@/components/AccountDropdown';
 
 export function DashboardPage() {
-  const { user, logout, isGuest, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const { data: decisions = [], isLoading, refetch } = useQuery<DecisionWithDetails[]>({
@@ -34,27 +24,6 @@ export function DashboardPage() {
     setShowCreateDialog(false);
   };
 
-  const handleExportData = async () => {
-    try {
-      const response = await apiClient.exportData();
-      const blob = new Blob([JSON.stringify(response, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `aleator-data-${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Export failed:', error);
-    }
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    if (!isGuest) {
-      navigate('/login');
-    }
-  };
 
   return (
     <div className="matsu-app relative">
@@ -78,94 +47,8 @@ export function DashboardPage() {
                 <span className="hidden md:inline">New Decision</span>
               </Button>
               
-              {/* Account Sheet */}
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="matsu-button"
-                  >
-                    <User className="w-4 h-4" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent className="bg-[oklch(0.94_0.035_83.6)] border-[oklch(0.74_0.063_80.8)]">
-                  <SheetHeader>
-                    <SheetTitle className="text-[oklch(0.29_0.086_109)]">
-                      {isGuest ? 'Guest Session' : 'Account'}
-                    </SheetTitle>
-                    <SheetDescription className="text-[oklch(0.51_0.077_74.3)]">
-                      {isGuest ? 'Your data is stored locally' : 'Manage your account and data'}
-                    </SheetDescription>
-                  </SheetHeader>
-                  <div className="mt-6 space-y-6">
-                    {user && (
-                      <div>
-                        <p className="text-sm text-[oklch(0.51_0.077_74.3)] mb-1">Signed in as</p>
-                        <p className="font-medium text-[oklch(0.29_0.086_109)]">
-                          {isGuest ? 'Guest' : (user.email || 'Unknown')}
-                        </p>
-                        {isGuest && (
-                          <Badge 
-                            variant="secondary" 
-                            className="mt-2 bg-[oklch(0.71_0.097_111.7)]/10 text-[oklch(0.51_0.097_111.7)] border-[oklch(0.71_0.097_111.7)]/20"
-                          >
-                            Guest Account
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-                    
-                    {isGuest && (
-                      <div className="space-y-3 p-4 bg-[oklch(0.71_0.097_111.7)]/5 rounded-lg border border-[oklch(0.71_0.097_111.7)]/20">
-                        <p className="text-sm text-[oklch(0.29_0.086_109)]">
-                          Create an account to save your decisions across devices.
-                        </p>
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={() => navigate('/register')} 
-                            size="sm"
-                            className="flex-1 matsu-button"
-                          >
-                            Create Account
-                          </Button>
-                          <Button 
-                            onClick={() => navigate('/login')} 
-                            variant="outline" 
-                            size="sm"
-                            className="flex-1 matsu-button"
-                          >
-                            Sign In
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {user && (
-                      <div className="space-y-3">
-                        <Button 
-                          onClick={handleExportData}
-                          variant="outline"
-                          className="w-full justify-start matsu-button"
-                        >
-                          Export Data
-                        </Button>
-                        
-                        {!isGuest && (
-                          <Button 
-                            onClick={handleLogout}
-                          variant="outline"
-                          className="w-full justify-start matsu-button text-[oklch(0.54_0.19_29.2)] hover:text-[oklch(0.54_0.19_29.2)] hover:bg-[oklch(0.54_0.19_29.2)]/10"
-                        >
-                          <LogOut className="w-4 h-4 mr-2" />
-                          Sign Out
-                        </Button>
-                      )}
-                      </div>
-                    )}
-                  </div>
-                </SheetContent>
-              </Sheet>
+              {/* Account Dropdown */}
+              <AccountDropdown />
             </div>
           </div>
           <p className="text-[oklch(0.51_0.077_78.9)] text-base md:text-lg">
