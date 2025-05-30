@@ -54,9 +54,11 @@ class TestAuthEndpoints:
     @pytest.mark.asyncio
     async def test_login_valid_credentials(self, client, test_user):
         """Test login with valid credentials."""
-        login_data = {"email": test_user.email, "password": "testpass123"}
+        login_data = {"username": test_user.email, "password": "testpass123"}
 
-        response = await client.post("/api/v1/auth/login", json=login_data)
+        response = await client.post(
+            "/api/v1/auth/login", data=login_data, headers={"Content-Type": "application/x-www-form-urlencoded"}
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -66,9 +68,11 @@ class TestAuthEndpoints:
     @pytest.mark.asyncio
     async def test_login_invalid_email(self, client):
         """Test login with invalid email."""
-        login_data = {"email": "nonexistent@example.com", "password": "password123"}
+        login_data = {"username": "nonexistent@example.com", "password": "password123"}
 
-        response = await client.post("/api/v1/auth/login", json=login_data)
+        response = await client.post(
+            "/api/v1/auth/login", data=login_data, headers={"Content-Type": "application/x-www-form-urlencoded"}
+        )
 
         assert response.status_code == 401
         assert "Incorrect email or password" in response.json()["detail"]
@@ -76,9 +80,11 @@ class TestAuthEndpoints:
     @pytest.mark.asyncio
     async def test_login_invalid_password(self, client, test_user):
         """Test login with invalid password."""
-        login_data = {"email": test_user.email, "password": "wrongpassword"}
+        login_data = {"username": test_user.email, "password": "wrongpassword"}
 
-        response = await client.post("/api/v1/auth/login", json=login_data)
+        response = await client.post(
+            "/api/v1/auth/login", data=login_data, headers={"Content-Type": "application/x-www-form-urlencoded"}
+        )
 
         assert response.status_code == 401
         assert "Incorrect email or password" in response.json()["detail"]
@@ -87,9 +93,11 @@ class TestAuthEndpoints:
     async def test_get_current_user_with_token(self, client, test_user):
         """Test getting current user info with valid token."""
         # First login to get token
-        login_data = {"email": test_user.email, "password": "testpass123"}
+        login_data = {"username": test_user.email, "password": "testpass123"}
 
-        login_response = await client.post("/api/v1/auth/login", json=login_data)
+        login_response = await client.post(
+            "/api/v1/auth/login", data=login_data, headers={"Content-Type": "application/x-www-form-urlencoded"}
+        )
         token = login_response.json()["access_token"]
 
         # Then get user info
@@ -156,3 +164,21 @@ class TestAuthEndpoints:
         user_data = response.json()
         assert user_data["is_guest"] is False
         assert user_data["email"] == "converted@example.com"
+
+    @pytest.mark.asyncio
+    async def test_logout(self, client, test_user):
+        """Test logout endpoint."""
+        # First login to get token
+        login_data = {"username": test_user.email, "password": "testpass123"}
+        login_response = await client.post(
+            "/api/v1/auth/login", data=login_data, headers={"Content-Type": "application/x-www-form-urlencoded"}
+        )
+        token = login_response.json()["access_token"]
+
+        # Test logout
+        headers = {"Authorization": f"Bearer {token}"}
+        response = await client.post("/api/v1/auth/logout", headers=headers)
+        assert response.status_code == 204  # No content
+
+        # Note: Since we're using JWT tokens, the token is still technically valid
+        # The client is responsible for removing it from storage

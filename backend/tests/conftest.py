@@ -66,5 +66,5 @@ async def app(session):
 async def client(app):
     """Create test client."""
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
+    async with AsyncClient(transport=transport, base_url="http://test", follow_redirects=False) as client:
         yield client

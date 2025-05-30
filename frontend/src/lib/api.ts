@@ -44,9 +44,13 @@ class ApiClient {
     const url = `${this.baseURL}${endpoint}`;
     
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       ...(options.headers as Record<string, string> || {}),
     };
+
+    // Only set Content-Type if not already set and body exists
+    if (!headers['Content-Type'] && options.body && typeof options.body === 'string') {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (this.authToken) {
       headers.Authorization = `Bearer ${this.authToken}`;
@@ -61,11 +65,25 @@ class ApiClient {
       const response = await fetch(url, config);
       
       if (!response.ok) {
-        const errorData: ApiError = await response.json().catch(() => ({
+        const errorData = await response.json().catch(() => ({
           detail: 'Network error occurred',
           status_code: response.status,
         }));
-        throw new Error(errorData.detail || `HTTP ${response.status}`);
+        
+        // Handle different error response formats
+        let errorMessage = 'An error occurred';
+        if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail;
+        } else if (Array.isArray(errorData.detail)) {
+          // FastAPI validation errors
+          errorMessage = errorData.detail.map((err: any) => err.msg || err.message).join(', ');
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else {
+          errorMessage = `HTTP ${response.status}`;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       // Handle empty responses
@@ -81,43 +99,46 @@ class ApiClient {
 
   // Authentication endpoints
   async login(credentials: LoginCredentials): Promise<AuthTokens> {
-    const formData = new FormData();
-    formData.append('username', credentials.email);
-    formData.append('password', credentials.password);
+    // Use URL-encoded form data for OAuth2 compatibility
+    const params = new URLSearchParams();
+    params.append('username', credentials.email);
+    params.append('password', credentials.password);
 
-    return this.request<AuthTokens>('/api/v1/auth/login', {
+    return this.request<AuthTokens>('/api/v1/auth/login/', {
       method: 'POST',
-      headers: {},
-      body: formData,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
     });
   }
 
   async register(credentials: RegisterCredentials): Promise<User> {
-    return this.request<User>('/api/v1/auth/register', {
+    return this.request<User>('/api/v1/auth/register/', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
   }
 
   async getCurrentUser(): Promise<User> {
-    return this.request<User>('/api/v1/auth/me');
+    return this.request<User>('/api/v1/auth/me/');
   }
 
   async createGuestSession(): Promise<{ guest_token: string }> {
-    return this.request<{ guest_token: string }>('/api/v1/auth/guest', {
+    return this.request<{ guest_token: string }>('/api/v1/auth/guest/', {
       method: 'POST',
     });
   }
 
   async convertGuestToUser(email: string, password: string): Promise<AuthTokens> {
-    return this.request<AuthTokens>('/api/v1/auth/convert', {
+    return this.request<AuthTokens>('/api/v1/auth/convert/', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
   }
 
   async logout(): Promise<void> {
-    await this.request<void>('/api/v1/auth/logout', {
+    await this.request<void>('/api/v1/auth/logout/', {
       method: 'POST',
     });
     this.clearAuthToken();
@@ -136,30 +157,30 @@ class ApiClient {
   }
 
   async updateDecision(id: string, updates: UpdateDecisionInput) {
-    return this.request(`/api/v1/decisions/${id}`, {
+    return this.request(`/api/v1/decisions/${id}/`, {
       method: 'PUT',
       body: JSON.stringify(updates),
     });
   }
 
   async deleteDecision(id: string) {
-    return this.request(`/api/v1/decisions/${id}`, {
+    return this.request(`/api/v1/decisions/${id}/`, {
       method: 'DELETE',
     });
   }
 
   async rollDecision(id: string) {
-    return this.request(`/api/v1/decisions/${id}/roll`, {
+    return this.request(`/api/v1/decisions/${id}/roll/`, {
       method: 'POST',
     });
   }
 
   async getPendingRoll(id: string) {
-    return this.request(`/api/v1/decisions/${id}/pending-roll`);
+    return this.request(`/api/v1/decisions/${id}/pending-roll/`);
   }
 
   async confirmFollowThrough(decisionId: string, rollId: string, followed: boolean) {
-    return this.request(`/api/v1/decisions/${decisionId}/rolls/${rollId}/confirm`, {
+    return this.request(`/api/v1/decisions/${decisionId}/rolls/${rollId}/confirm/`, {
       method: 'POST',
       body: JSON.stringify({ followed }),
     });
@@ -167,16 +188,16 @@ class ApiClient {
 
   // Analytics endpoints
   async getAnalyticsOverview() {
-    return this.request('/api/v1/analytics/overview');
+    return this.request('/api/v1/analytics/overview/');
   }
 
   async getDecisionAnalytics(id: string) {
-    return this.request(`/api/v1/analytics/decisions/${id}`);
+    return this.request(`/api/v1/analytics/decisions/${id}/`);
   }
 
   // User endpoints
   async exportData() {
-    return this.request('/api/v1/user/export');
+    return this.request('/api/v1/user/export/');
   }
 }
 

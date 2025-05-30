@@ -18,9 +18,11 @@ async def test_user(session):
 @pytest_asyncio.fixture
 async def auth_headers(client, test_user):
     """Get authentication headers for test user."""
-    login_data = {"email": test_user.email, "password": "testpass123"}
+    login_data = {"username": test_user.email, "password": "testpass123"}
 
-    response = await client.post("/api/v1/auth/login", json=login_data)
+    response = await client.post(
+        "/api/v1/auth/login", data=login_data, headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
@@ -164,13 +166,13 @@ class TestDecisionEndpoints:
             assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
             data = response.json()
             results.append(data["result"])
-            
+
             # Confirm the roll to allow the next one
             roll_id = data["id"]
             confirm_response = await client.post(
                 f"/api/v1/decisions/{test_binary_decision.id}/rolls/{roll_id}/confirm",
                 headers=auth_headers,
-                json={"followed": True}
+                json={"followed": True},
             )
             assert confirm_response.status_code == 200
 

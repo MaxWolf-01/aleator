@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.auth import (
@@ -38,10 +39,12 @@ async def register(user_data: UserRegister, session: AsyncSession = Depends(get_
 
 @router.post("/login", response_model=Token)
 async def login(
-    user_data: UserLogin, session: AsyncSession = Depends(get_db_session), settings: Settings = Depends(get_settings)
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    session: AsyncSession = Depends(get_db_session),
+    settings: Settings = Depends(get_settings),
 ):
     """Login and get access token."""
-    user = await authenticate_user(user_data.email, user_data.password, session)
+    user = await authenticate_user(form_data.username, form_data.password, session)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -96,3 +99,11 @@ async def convert_guest_to_user(
 async def get_current_user_info(current_user: User = Depends(get_current_active_user)):
     """Get current user information."""
     return current_user
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout():
+    """Logout the current user."""
+    # Since we're using JWT tokens, we don't need to do anything server-side
+    # The client will remove the token from local storage
+    return None

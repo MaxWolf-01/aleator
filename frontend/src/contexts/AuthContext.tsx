@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User, LoginCredentials, RegisterCredentials } from '@/types';
 import { apiClient } from '@/lib/api';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AuthContextType {
   user: User | null;
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   const isAuthenticated = !!user;
   const isGuest = user?.is_guest ?? false;
@@ -29,23 +31,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const currentUser = await apiClient.getCurrentUser();
         setUser(currentUser);
-      } catch {
+      } catch (error) {
         // User not authenticated or token expired
-        // Only create a new guest session if we don't have any token
-        const existingToken = localStorage.getItem('auth_token');
-        if (!existingToken) {
-          try {
-            const { guest_token } = await apiClient.createGuestSession();
-            apiClient.setAuthToken(guest_token);
-            
-            const guestUser = await apiClient.getCurrentUser();
-            setUser(guestUser);
-          } catch (guestError) {
-            console.error('Failed to create guest session:', guestError);
-          }
-        } else {
-          // Clear the invalid token
-          apiClient.clearAuthToken();
+        console.error('Auth check failed:', error);
+        
+        // Clear the invalid token
+        apiClient.clearAuthToken();
+        
+        // Create a new guest session
+        try {
+          const { guest_token } = await apiClient.createGuestSession();
+          apiClient.setAuthToken(guest_token);
+          
+          const guestUser = await apiClient.getCurrentUser();
+          setUser(guestUser);
+        } catch (guestError) {
+          console.error('Failed to create guest session:', guestError);
         }
       } finally {
         setLoading(false);
@@ -80,6 +81,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setUser(null);
       apiClient.clearAuthToken();
+      // Clear all cached queries on logout
+      queryClient.clear();
     }
   };
 
