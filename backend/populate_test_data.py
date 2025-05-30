@@ -221,8 +221,20 @@ def create_rolls_pattern(
 
 async def populate_test_data():
     """Populate database with test data."""
+    import os
+
     settings = get_settings()
-    engine = create_async_engine(str(settings.database_url))
+
+    # Use environment variable or PostgreSQL if running in Docker
+    database_url = os.getenv(
+        "DATABASE_URL", "postgresql+asyncpg://aleator:aleator_dev_password@localhost:5432/aleator_dev"
+    )
+    if "sqlite" in database_url:
+        # For local development without Docker
+        engine = create_async_engine(str(settings.database_url))
+    else:
+        # For Docker PostgreSQL
+        engine = create_async_engine(database_url)
 
     # Create tables
     async with engine.begin() as conn:

@@ -68,6 +68,11 @@ migrate: ## Run database migrations
 	@echo "🔄 Running database migrations..."
 	docker compose -f docker-compose.dev.yml exec backend alembic upgrade head
 
+seed: 
+	@echo "🌱 Seeding development database..."
+	python backend/populate_test_data.py
+	@echo "✅ Database seeded with test user"
+
 # Utility commands
 logs: ## View logs from all services
 	docker compose -f docker-compose.dev.yml logs -f
