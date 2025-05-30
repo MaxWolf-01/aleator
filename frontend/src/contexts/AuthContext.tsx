@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const currentUser = await apiClient.getCurrentUser();
         setUser(currentUser);
-      } catch (error) {
+      } catch {
         // User not authenticated or token expired
         console.log('Auth check failed, creating guest session');
         

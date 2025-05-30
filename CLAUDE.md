@@ -52,7 +52,7 @@
   important-instruction-reminders
   Do what has been asked; nothing more, nothing less.
   NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
-  NEVER commit the external-docs directory to the repository. It is meant for local reference only and cannot be gitignored (because you wouldn't be able to see it without tool-use / I cant @mention it).
+  CRITICAL: NEVER EVER commit the external-docs directory to the repository!!! Before ANY commit, check that external-docs is NOT included. It is meant for local reference only and cannot be gitignored (because you wouldn't be able to see it without tool-use / I cant @mention it).
   CI TESTS can be run locally with the comman `act`, to test the github actions locally.
 
 ## UI/UX Principles & Learnings

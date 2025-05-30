@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Populate database with test data for various time horizons and patterns.
+"""Populate database with test data for various time horizons and patterns.
 This helps test chart x-axis formatting and date handling.
 """
 

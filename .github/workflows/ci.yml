@@ -26,7 +26,7 @@ jobs:
       working-directory: ./backend
       run: |
         uv venv
-        uv pip sync pyproject.toml --extra test
+        uv pip install -e '.[test]'
         
     - name: Run backend tests
       working-directory: ./backend
@@ -102,7 +102,7 @@ jobs:
       working-directory: ./backend
       run: |
         uv venv
-        uv pip sync pyproject.toml --extra test
+        uv pip install -e '.[test]'
         
     - name: Run backend with test database
       working-directory: ./backend
@@ -110,10 +110,12 @@ jobs:
         DATABASE_URL: postgresql+asyncpg://aleator:aleator_pass@localhost:5432/aleator_test
         JWT_SECRET_KEY: test_secret_key_for_ci
         CORS_ORIGINS: '["http://localhost:5173"]'
+        SQLALCHEMY_ECHO: "false"
+        DB_AUTO_CREATE: "true"
       run: |
         source .venv/bin/activate
         # Start backend in background
-        uvicorn app:app --host 0.0.0.0 --port 8000 &
+        uvicorn main:app --host 0.0.0.0 --port 8000 &
         
         # Wait for backend to be ready
         timeout 30 bash -c 'until curl -s http://localhost:8000/docs > /dev/null; do sleep 1; done'

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-End-to-end test for authentication flow.
+"""End-to-end test for authentication flow.
 Can be run manually to verify auth is working properly.
 """
 

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Cleanup script for removing old guest accounts.
+"""Cleanup script for removing old guest accounts.
 Can be run as a cron job or scheduled task.
 """
 

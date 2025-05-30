@@ -87,7 +87,7 @@ class ApiClient {
           errorMessage = errorData.detail;
         } else if (Array.isArray(errorData.detail)) {
           // FastAPI validation errors
-          errorMessage = errorData.detail.map((err: any) => err.msg || err.message).join(', ');
+          errorMessage = errorData.detail.map((err: { msg?: string; message?: string }) => err.msg || err.message).join(', ');
         } else if (errorData.message) {
           errorMessage = errorData.message;
         } else {
