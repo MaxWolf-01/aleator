@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePreferences } from "@/contexts/PreferencesContext";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,6 +10,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { 
   User, 
@@ -17,12 +19,14 @@ import {
   UserPlus, 
   LogIn,
   Mail,
-  Sparkles
+  Sparkles,
+  Zap
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
 
 export function AccountDropdown() {
   const { user, logout } = useAuth();
+  const { animationsEnabled, setAnimationsEnabled } = usePreferences();
   const navigate = useNavigate();
   const [isExporting, setIsExporting] = useState(false);
 
@@ -81,6 +85,18 @@ export function AccountDropdown() {
             </div>
           </div>
         </DropdownMenuLabel>
+        
+        <DropdownMenuSeparator className="bg-[oklch(0.74_0.063_80.8)]" />
+        
+        {/* Preferences Section - Available for all users */}
+        <DropdownMenuCheckboxItem 
+          checked={animationsEnabled}
+          onCheckedChange={setAnimationsEnabled}
+          className="cursor-pointer hover:bg-[oklch(0.88_0.035_83.6)] focus:bg-[oklch(0.88_0.035_83.6)] focus:text-[oklch(0.29_0.086_109)] transition-colors rounded-md"
+        >
+          <Zap className="h-4 w-4" />
+          <span>Animations</span>
+        </DropdownMenuCheckboxItem>
         
         <DropdownMenuSeparator className="bg-[oklch(0.74_0.063_80.8)]" />
         
