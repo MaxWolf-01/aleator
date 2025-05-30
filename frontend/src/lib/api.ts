@@ -1,9 +1,20 @@
-import type { AuthTokens, LoginCredentials, RegisterCredentials, User, ApiError, CreateBinaryDecisionForm, CreateMultiChoiceDecisionForm } from '@/types';
+import type { AuthTokens, LoginCredentials, RegisterCredentials, User } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-export type CreateDecisionInput = (CreateBinaryDecisionForm & { type: 'binary'; cooldown_hours: number }) | 
-                                  (CreateMultiChoiceDecisionForm & { type: 'multi_choice' });
+export type CreateDecisionInput = {
+  title: string;
+  type: 'binary' | 'multi_choice';
+  cooldown_hours: number;
+  binary_data?: {
+    probability: number;
+    yes_text: string;
+    no_text: string;
+  };
+  multi_choice_data?: {
+    choices: { name: string; weight: number }[];
+  };
+};
 
 export interface UpdateDecisionInput {
   title?: string;

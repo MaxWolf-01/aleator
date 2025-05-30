@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentUser);
       } catch (error) {
         // User not authenticated or token expired
-        console.error('Auth check failed:', error);
+        console.log('Auth check failed, creating guest session');
         
         // Clear the invalid token
         apiClient.clearAuthToken();
@@ -41,12 +41,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Create a new guest session
         try {
           const { guest_token } = await apiClient.createGuestSession();
+          console.log('Guest token created:', guest_token ? 'yes' : 'no');
           apiClient.setAuthToken(guest_token);
           
           const guestUser = await apiClient.getCurrentUser();
+          console.log('Guest user:', guestUser);
           setUser(guestUser);
         } catch (guestError) {
           console.error('Failed to create guest session:', guestError);
+          // Keep user as null, app will handle unauthenticated state
         }
       } finally {
         setLoading(false);
@@ -74,6 +77,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    const wasGuest = user?.is_guest;
+    
     try {
       await apiClient.logout();
     } catch {
@@ -83,6 +88,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       apiClient.clearAuthToken();
       // Clear all cached queries on logout
       queryClient.clear();
+      
+      // For guest users, create a new guest session instead of logging out completely
+      if (wasGuest) {
+        try {
+          const { guest_token } = await apiClient.createGuestSession();
+          apiClient.setAuthToken(guest_token);
+          
+          const guestUser = await apiClient.getCurrentUser();
+          setUser(guestUser);
+        } catch (error) {
+          console.error('Failed to create new guest session:', error);
+        }
+      }
     }
   };
 

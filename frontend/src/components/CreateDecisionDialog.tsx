@@ -90,6 +90,10 @@ export function CreateDecisionDialog({
       setCooldownValue(0);
       setCooldownUnit('hours');
       onSuccess();
+      onOpenChange(false);
+    },
+    onError: (error) => {
+      console.error('Failed to create decision:', error);
     },
   });
 
@@ -125,6 +129,12 @@ export function CreateDecisionDialog({
 
           <div className="p-6">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              {createMutation.isError && (
+                <div className="p-3 rounded-lg bg-[oklch(0.54_0.19_29.2)]/10 text-[oklch(0.54_0.19_29.2)] border border-[oklch(0.54_0.19_29.2)]/20 text-sm">
+                  Failed to create decision. Please try again.
+                </div>
+              )}
+              
               <div className="space-y-3">
                 <Label className="text-[oklch(0.51_0.077_74.3)]">Type</Label>
                 <div className="flex gap-2">

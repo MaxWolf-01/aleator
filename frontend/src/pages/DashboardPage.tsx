@@ -19,13 +19,14 @@ import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 
 export function DashboardPage() {
-  const { user, logout, isGuest } = useAuth();
+  const { user, logout, isGuest, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const { data: decisions = [], isLoading, refetch } = useQuery<DecisionWithDetails[]>({
     queryKey: ['decisions'],
     queryFn: () => apiClient.getDecisions() as Promise<DecisionWithDetails[]>,
+    enabled: !authLoading && !!user,
   });
 
   const handleDecisionCreated = () => {
@@ -45,6 +46,13 @@ export function DashboardPage() {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Export failed:', error);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    if (!isGuest) {
+      navigate('/login');
     }
   };
 
@@ -83,30 +91,41 @@ export function DashboardPage() {
                 </SheetTrigger>
                 <SheetContent className="bg-[oklch(0.94_0.035_83.6)] border-[oklch(0.74_0.063_80.8)]">
                   <SheetHeader>
-                    <SheetTitle>Account</SheetTitle>
-                    <SheetDescription>
-                      Manage your account and data
+                    <SheetTitle className="text-[oklch(0.29_0.086_109)]">
+                      {isGuest ? 'Guest Session' : 'Account'}
+                    </SheetTitle>
+                    <SheetDescription className="text-[oklch(0.51_0.077_74.3)]">
+                      {isGuest ? 'Your data is stored locally' : 'Manage your account and data'}
                     </SheetDescription>
                   </SheetHeader>
                   <div className="mt-6 space-y-6">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Signed in as</p>
-                      <p className="font-medium">{user?.email}</p>
-                      {isGuest && (
-                        <Badge variant="secondary" className="mt-2">Guest Account</Badge>
-                      )}
-                    </div>
+                    {user && (
+                      <div>
+                        <p className="text-sm text-[oklch(0.51_0.077_74.3)] mb-1">Signed in as</p>
+                        <p className="font-medium text-[oklch(0.29_0.086_109)]">
+                          {isGuest ? 'Guest' : (user.email || 'Unknown')}
+                        </p>
+                        {isGuest && (
+                          <Badge 
+                            variant="secondary" 
+                            className="mt-2 bg-[oklch(0.71_0.097_111.7)]/10 text-[oklch(0.51_0.097_111.7)] border-[oklch(0.71_0.097_111.7)]/20"
+                          >
+                            Guest Account
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                     
                     {isGuest && (
-                      <div className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                        <p className="text-sm">
+                      <div className="space-y-3 p-4 bg-[oklch(0.71_0.097_111.7)]/5 rounded-lg border border-[oklch(0.71_0.097_111.7)]/20">
+                        <p className="text-sm text-[oklch(0.29_0.086_109)]">
                           Create an account to save your decisions across devices.
                         </p>
                         <div className="flex gap-2">
                           <Button 
                             onClick={() => navigate('/register')} 
                             size="sm"
-                            className="flex-1"
+                            className="flex-1 matsu-button"
                           >
                             Create Account
                           </Button>
@@ -114,7 +133,7 @@ export function DashboardPage() {
                             onClick={() => navigate('/login')} 
                             variant="outline" 
                             size="sm"
-                            className="flex-1"
+                            className="flex-1 matsu-button"
                           >
                             Sign In
                           </Button>
@@ -122,24 +141,28 @@ export function DashboardPage() {
                       </div>
                     )}
                     
-                    <div className="space-y-3">
-                      <Button 
-                        onClick={handleExportData}
-                        variant="outline"
-                        className="w-full justify-start"
-                      >
-                        Export Data
-                      </Button>
-                      
-                      <Button 
-                        onClick={logout}
-                        variant="outline"
-                        className="w-full justify-start text-red-600 hover:text-red-700"
-                      >
-                        <LogOut className="w-4 h-4 mr-2" />
-                        Sign Out
-                      </Button>
-                    </div>
+                    {user && (
+                      <div className="space-y-3">
+                        <Button 
+                          onClick={handleExportData}
+                          variant="outline"
+                          className="w-full justify-start matsu-button"
+                        >
+                          Export Data
+                        </Button>
+                        
+                        {!isGuest && (
+                          <Button 
+                            onClick={handleLogout}
+                          variant="outline"
+                          className="w-full justify-start matsu-button text-[oklch(0.54_0.19_29.2)] hover:text-[oklch(0.54_0.19_29.2)] hover:bg-[oklch(0.54_0.19_29.2)]/10"
+                        >
+                          <LogOut className="w-4 h-4 mr-2" />
+                          Sign Out
+                        </Button>
+                      )}
+                      </div>
+                    )}
                   </div>
                 </SheetContent>
               </Sheet>
