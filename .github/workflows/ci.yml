@@ -18,6 +18,7 @@ jobs:
       uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
+        cache-dependency-glob: "backend/uv.lock"
         
     - name: Set up Python
       run: uv python install 3.12
@@ -25,8 +26,7 @@ jobs:
     - name: Install backend dependencies
       working-directory: ./backend
       run: |
-        uv venv
-        uv pip install -e '.[test]'
+        uv sync --all-extras
         
     - name: Run backend tests
       working-directory: ./backend
@@ -94,6 +94,7 @@ jobs:
       uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
+        cache-dependency-glob: "backend/uv.lock"
         
     - name: Set up Python
       run: uv python install 3.12
@@ -101,8 +102,7 @@ jobs:
     - name: Install backend dependencies
       working-directory: ./backend
       run: |
-        uv venv
-        uv pip install -e '.[test]'
+        uv sync --all-extras
         
     - name: Run backend with test database
       working-directory: ./backend
