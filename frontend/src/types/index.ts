@@ -39,6 +39,7 @@ export interface Decision {
 export interface BinaryDecision {
   decision_id: string;
   probability: number;
+  probability_granularity: number; // 0=whole, 1=0.1, 2=0.01
   yes_text: string;
   no_text: string;
 }
@@ -82,6 +83,7 @@ export interface ProbabilityHistory {
 export interface CreateBinaryDecisionForm {
   title: string;
   probability: number;
+  probability_granularity: number;
   yes_text: string;
   no_text: string;
 }

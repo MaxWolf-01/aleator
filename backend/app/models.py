@@ -52,7 +52,8 @@ class Decision(SQLModel, table=True):
 
 class BinaryDecision(SQLModel, table=True):
     decision_id: int = Field(foreign_key="decision.id", primary_key=True)
-    probability: int = Field(ge=1, le=99)
+    probability: float = Field(ge=0.01, le=99.99)
+    probability_granularity: int = Field(default=0, ge=0, le=2)  # 0=whole, 1=0.1, 2=0.01
     yes_text: str = Field(max_length=100, default="Yes")
     no_text: str = Field(max_length=100, default="No")
 
@@ -90,7 +91,7 @@ class Roll(SQLModel, table=True):
 class ProbabilityHistory(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     decision_id: int = Field(foreign_key="decision.id")
-    probability: int = Field(ge=1, le=99)
+    probability: float = Field(ge=0.01, le=99.99)
     changed_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc), sa_column=Column(DateTime(timezone=True), nullable=False)
     )

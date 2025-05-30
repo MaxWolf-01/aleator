@@ -13,6 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@/components/ui/toggle-group";
 
 interface EditDecisionDialogProps {
   decision: DecisionWithDetails | null;
@@ -25,6 +29,7 @@ export function EditDecisionDialog({ decision, open, onOpenChange, onUpdate }: E
   const [title, setTitle] = useState('');
   const [yesText, setYesText] = useState('Yes');
   const [noText, setNoText] = useState('No');
+  const [probabilityGranularity, setProbabilityGranularity] = useState("0");
   const [cooldownValue, setCooldownValue] = useState(0);
   const [cooldownUnit, setCooldownUnit] = useState<'minutes' | 'hours' | 'days'>('hours');
 
@@ -52,6 +57,7 @@ export function EditDecisionDialog({ decision, open, onOpenChange, onUpdate }: E
       if (decision.binary_decision) {
         setYesText(decision.binary_decision.yes_text);
         setNoText(decision.binary_decision.no_text);
+        setProbabilityGranularity(decision.binary_decision.probability_granularity?.toString() || "0");
       }
     }
   }, [decision]);
@@ -81,7 +87,8 @@ export function EditDecisionDialog({ decision, open, onOpenChange, onUpdate }: E
         title,
         cooldown_hours: cooldownHours,
         yes_text: decision.type === 'binary' ? yesText : undefined,
-        no_text: decision.type === 'binary' ? noText : undefined
+        no_text: decision.type === 'binary' ? noText : undefined,
+        probability_granularity: decision.type === 'binary' ? parseInt(probabilityGranularity) : undefined
       });
     },
     onSuccess: () => {
@@ -134,7 +141,8 @@ export function EditDecisionDialog({ decision, open, onOpenChange, onUpdate }: E
               </div>
 
               {decision.type === 'binary' && (
-                <div className="grid grid-cols-2 gap-4">
+                <>
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="yes-text" className="text-[oklch(0.51_0.077_74.3)]">Yes Answer Text</Label>
                       <Input
@@ -157,6 +165,43 @@ export function EditDecisionDialog({ decision, open, onOpenChange, onUpdate }: E
                       />
                     </div>
                   </div>
+
+                  {/* Probability Granularity */}
+                  <div className="space-y-2">
+                    <Label className="text-[oklch(0.51_0.077_74.3)]">Probability Precision</Label>
+                    <ToggleGroup 
+                      type="single" 
+                      value={probabilityGranularity}
+                      onValueChange={(value) => value && setProbabilityGranularity(value)}
+                      className="justify-start"
+                    >
+                      <ToggleGroupItem 
+                        value="0" 
+                        aria-label="Whole numbers"
+                        className="data-[state=on]:bg-[oklch(0.71_0.097_111.7)] data-[state=on]:text-white"
+                      >
+                        1%
+                      </ToggleGroupItem>
+                      <ToggleGroupItem 
+                        value="1" 
+                        aria-label="One decimal"
+                        className="data-[state=on]:bg-[oklch(0.71_0.097_111.7)] data-[state=on]:text-white"
+                      >
+                        0.1%
+                      </ToggleGroupItem>
+                      <ToggleGroupItem 
+                        value="2" 
+                        aria-label="Two decimals"
+                        className="data-[state=on]:bg-[oklch(0.71_0.097_111.7)] data-[state=on]:text-white"
+                      >
+                        0.01%
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                    <p className="text-xs text-[oklch(0.61_0.077_74.3)]">
+                      Choose how precise you want your probability adjustments to be
+                    </p>
+                  </div>
+                </>
               )}
 
               {/* Cooldown Configuration */}

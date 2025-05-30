@@ -8,6 +8,7 @@ export type CreateDecisionInput = {
   cooldown_hours: number;
   binary_data?: {
     probability: number;
+    probability_granularity: number;
     yes_text: string;
     no_text: string;
   };
@@ -19,6 +20,7 @@ export type CreateDecisionInput = {
 export interface UpdateDecisionInput {
   title?: string;
   probability?: number;
+  probability_granularity?: number;
   yes_text?: string;
   no_text?: string;
   cooldown_hours?: number;

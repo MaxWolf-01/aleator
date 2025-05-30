@@ -18,6 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@/components/ui/toggle-group";
 
 interface CreateDecisionDialogProps {
   open: boolean;
@@ -28,6 +32,7 @@ interface CreateDecisionDialogProps {
 const binaryDecisionSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title too long"),
   probability: z.number().min(1).max(99),
+  probability_granularity: z.number().min(0).max(2),
   yes_text: z.string().min(1, "Yes text is required").max(50, "Text too long"),
   no_text: z.string().min(1, "No text is required").max(50, "Text too long"),
 });
@@ -38,6 +43,7 @@ export function CreateDecisionDialog({
   onSuccess,
 }: CreateDecisionDialogProps) {
   const [probability, setProbability] = useState([67]);
+  const [probabilityGranularity, setProbabilityGranularity] = useState("0");
   const [cooldownValue, setCooldownValue] = useState(0);
   const [cooldownUnit, setCooldownUnit] = useState<'minutes' | 'hours' | 'days'>('hours');
 
@@ -50,6 +56,7 @@ export function CreateDecisionDialog({
     resolver: zodResolver(binaryDecisionSchema),
     defaultValues: {
       probability: 67,
+      probability_granularity: 0,
       yes_text: "Yes",
       no_text: "No",
     },
@@ -79,6 +86,7 @@ export function CreateDecisionDialog({
         cooldown_hours: cooldownHours,
         binary_data: {
           probability: probability[0],
+          probability_granularity: parseInt(probabilityGranularity),
           yes_text: data.yes_text,
           no_text: data.no_text,
         },
@@ -87,6 +95,7 @@ export function CreateDecisionDialog({
     onSuccess: () => {
       reset();
       setProbability([67]);
+      setProbabilityGranularity("0");
       setCooldownValue(0);
       setCooldownUnit('hours');
       onSuccess();
@@ -170,21 +179,57 @@ export function CreateDecisionDialog({
                 <Label className="flex items-center justify-between text-[oklch(0.51_0.077_74.3)]">
                   <span>Probability</span>
                   <span className="font-bold text-[oklch(0.71_0.097_111.7)]">
-                    {probability[0]}%
+                    {probability[0].toFixed(parseInt(probabilityGranularity))}%
                   </span>
                 </Label>
                 <Slider
                   value={probability}
                   onValueChange={setProbability}
-                  max={99}
-                  min={1}
-                  step={1}
+                  max={probabilityGranularity === "0" ? 99 : 99.99}
+                  min={probabilityGranularity === "0" ? 1 : 0.01}
+                  step={probabilityGranularity === "0" ? 1 : probabilityGranularity === "1" ? 0.1 : 0.01}
                   className="cursor-pointer"
                 />
                 <div className="flex justify-between text-xs text-[oklch(0.61_0.077_74.3)]">
-                  <span>1%</span>
-                  <span>99%</span>
+                  <span>{probabilityGranularity === "0" ? "1%" : "0.01%"}</span>
+                  <span>{probabilityGranularity === "0" ? "99%" : "99.99%"}</span>
                 </div>
+              </div>
+
+              {/* Probability Granularity */}
+              <div className="space-y-2">
+                <Label className="text-[oklch(0.51_0.077_74.3)]">Precision</Label>
+                <ToggleGroup 
+                  type="single" 
+                  value={probabilityGranularity}
+                  onValueChange={(value) => value && setProbabilityGranularity(value)}
+                  className="justify-start"
+                >
+                  <ToggleGroupItem 
+                    value="0" 
+                    aria-label="Whole numbers"
+                    className="data-[state=on]:bg-[oklch(0.71_0.097_111.7)] data-[state=on]:text-white"
+                  >
+                    1%
+                  </ToggleGroupItem>
+                  <ToggleGroupItem 
+                    value="1" 
+                    aria-label="One decimal"
+                    className="data-[state=on]:bg-[oklch(0.71_0.097_111.7)] data-[state=on]:text-white"
+                  >
+                    0.1%
+                  </ToggleGroupItem>
+                  <ToggleGroupItem 
+                    value="2" 
+                    aria-label="Two decimals"
+                    className="data-[state=on]:bg-[oklch(0.71_0.097_111.7)] data-[state=on]:text-white"
+                  >
+                    0.01%
+                  </ToggleGroupItem>
+                </ToggleGroup>
+                <p className="text-xs text-[oklch(0.61_0.077_74.3)]">
+                  You can change this later.
+                </p>
               </div>
 
               {/* Yes/No Text Customization */}

@@ -182,7 +182,7 @@ export function DecisionCard({
 
       // Update probability along with confirmation
       const probabilityChanged =
-        localProbability !== decision.binary_decision?.probability;
+        Math.abs(localProbability - (decision.binary_decision?.probability || 50)) > 0.001;
 
       if (probabilityChanged && decision.type === "binary") {
         await apiClient.updateDecision(decision.id, {
@@ -225,9 +225,15 @@ export function DecisionCard({
   };
 
   const adjustProbability = (change: number) => {
+    const granularity = decision.binary_decision?.probability_granularity || 0;
+    const step = granularity === 0 ? 1 : granularity === 1 ? 0.1 : 0.01;
+    const min = granularity === 0 ? 1 : 0.01;
+    const max = granularity === 0 ? 99 : 99.99;
+    
     setLocalProbability((prev) => {
-      const newProb = Math.max(1, Math.min(99, prev + change));
-      return newProb;
+      const newProb = Math.max(min, Math.min(max, prev + change * step));
+      // Round to appropriate decimal places
+      return Math.round(newProb / step) * step;
     });
     // DON'T save immediately - wait for confirmation
   };
@@ -346,19 +352,23 @@ export function DecisionCard({
         ? Math.round((followedUpToThis / confirmedUpToThis.length) * 100)
         : 0;
 
-    // Find the probability at the time of this roll
+    // Find the probability used for this roll
+    // Since probability updates happen when confirming rolls, we look for
+    // the probability change that corresponds to this roll's confirmation
     const rollDate = new Date(roll.created_at);
     const probHistory = decision.probability_history || [];
-    const relevantHistory = probHistory
-      .filter((ph) => new Date(ph.changed_at) <= rollDate)
-      .sort(
-        (a, b) =>
-          new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime(),
-      );
-    const probabilityAtRoll =
-      relevantHistory[0]?.probability ||
-      decision.binary_decision?.probability ||
-      50;
+    
+    // Simple approach: for the Nth confirmed roll, use the Nth probability from history
+    // (or the most recent one if there are fewer probability entries)
+    const rollIndexInConfirmed = confirmedRolls.indexOf(roll);
+    const sortedProbHistory = [...probHistory].sort(
+      (a, b) => new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime()
+    );
+    
+    // Use the probability from the corresponding index, or the last one available
+    const probabilityAtRoll = sortedProbHistory[Math.min(rollIndexInConfirmed, sortedProbHistory.length - 1)]?.probability || 
+                             decision.binary_decision?.probability || 
+                             50;
 
     // Format date intelligently
     const formatDate = () => {
@@ -550,11 +560,10 @@ export function DecisionCard({
               </div>
 
               {/* Show if probability was adjusted */}
-              {localProbability !== decision.binary_decision?.probability && (
+              {Math.abs(localProbability - (decision.binary_decision?.probability || 50)) > 0.001 && (
                 <p className="text-xs opacity-75 mt-2">
                   Probability will update from{" "}
-                  {decision.binary_decision?.probability}% to {localProbability}
-                  %
+                  {decision.binary_decision?.probability?.toFixed(decision.binary_decision?.probability_granularity || 0)}% to {localProbability.toFixed(decision.binary_decision?.probability_granularity || 0)}%
                 </p>
               )}
             </div>
@@ -573,7 +582,7 @@ export function DecisionCard({
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-2xl md:text-3xl lg:text-4xl font-bold">
-                        {localProbability}%
+                        {localProbability.toFixed(decision.binary_decision?.probability_granularity || 0)}%
                       </span>
                     </div>
                     <span className="text-xs text-[oklch(0.51_0.077_74.3)]">
@@ -622,7 +631,7 @@ export function DecisionCard({
               </div>
 
               {/* Show if probability has been adjusted but not saved */}
-              {localProbability !== decision.binary_decision?.probability && (
+              {Math.abs(localProbability - (decision.binary_decision?.probability || 50)) > 0.001 && (
                 <p className="text-xs text-[oklch(0.51_0.077_74.3)] text-center">
                   Probability adjusted • Will save on next confirmed dice roll
                 </p>

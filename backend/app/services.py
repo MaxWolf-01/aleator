@@ -47,6 +47,7 @@ async def create_decision(user: User, decision_data: DecisionCreate, session: As
         binary_decision = BinaryDecision(
             decision_id=decision.id,
             probability=decision_data.binary_data.probability,
+            probability_granularity=decision_data.binary_data.probability_granularity,
             yes_text=decision_data.binary_data.yes_text,
             no_text=decision_data.binary_data.no_text,
         )
@@ -155,6 +156,10 @@ async def update_decision(decision: Decision, update_data: DecisionUpdate, sessi
                 prob_history = ProbabilityHistory(decision_id=decision.id, probability=update_data.probability)
                 session.add(prob_history)
 
+            # Update probability granularity if provided
+            if update_data.probability_granularity is not None:
+                binary_decision.probability_granularity = update_data.probability_granularity
+
             # Update yes/no text if provided
             if update_data.yes_text is not None:
                 binary_decision.yes_text = update_data.yes_text
@@ -180,13 +185,15 @@ async def update_decision(decision: Decision, update_data: DecisionUpdate, sessi
     return result.first()
 
 
-def roll_binary_decision(probability: int) -> str:
+def roll_binary_decision(probability: float) -> str:
     """Roll a binary decision using cryptographically secure randomness."""
-    if not (1 <= probability <= 99):
-        raise ValueError("Probability must be between 1 and 99")
+    if not (0.01 <= probability <= 99.99):
+        raise ValueError("Probability must be between 0.01 and 99.99")
 
-    random_value = secrets.randbelow(100) + 1
-    return "yes" if random_value <= probability else "no"
+    # Generate random value with same precision as probability
+    # Use 10000 for up to 2 decimal places
+    random_value = secrets.randbelow(10000) / 100.0
+    return "yes" if random_value < probability else "no"
 
 
 def roll_multi_choice_decision(choices: list[Choice]) -> str:

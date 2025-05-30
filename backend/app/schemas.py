@@ -40,7 +40,8 @@ class UserResponse(BaseModel):
 
 # Decision schemas
 class BinaryDecisionCreate(BaseModel):
-    probability: int = Field(ge=1, le=99)
+    probability: float = Field(ge=0.01, le=99.99)
+    probability_granularity: int = Field(default=0, ge=0, le=2)  # 0=whole, 1=0.1, 2=0.01
     yes_text: str = Field(max_length=100, default="Yes")
     no_text: str = Field(max_length=100, default="No")
 
@@ -65,14 +66,16 @@ class DecisionCreate(BaseModel):
 class DecisionUpdate(BaseModel):
     title: str | None = Field(None, max_length=200)
     cooldown_hours: float | None = Field(None, ge=0)
-    probability: int | None = Field(None, ge=1, le=99)  # For binary decisions
+    probability: float | None = Field(None, ge=0.01, le=99.99)  # For binary decisions
+    probability_granularity: int | None = Field(None, ge=0, le=2)  # For binary decisions
     yes_text: str | None = Field(None, max_length=100)  # For binary decisions
     no_text: str | None = Field(None, max_length=100)  # For binary decisions
     display_order: int | None = None  # For reordering
 
 
 class BinaryDecisionResponse(BaseModel):
-    probability: int
+    probability: float
+    probability_granularity: int
     yes_text: str
     no_text: str
 
@@ -110,7 +113,7 @@ class RollResponse(BaseModel):
 class ProbabilityHistoryResponse(BaseModel):
     id: int
     decision_id: int
-    probability: int
+    probability: float
     changed_at: datetime
 
 

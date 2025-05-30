@@ -36,7 +36,7 @@ async def test_binary_decision(session, test_user):
     await session.refresh(decision)
 
     binary_decision = BinaryDecision(
-        decision_id=decision.id, probability=67, yes_text="Yes, have dessert", no_text="No dessert tonight"
+        decision_id=decision.id, probability=67, probability_granularity=0, yes_text="Yes, have dessert", no_text="No dessert tonight"
     )
     session.add(binary_decision)
     await session.commit()
@@ -51,7 +51,7 @@ class TestDecisionEndpoints:
         decision_data = {
             "title": "Go for a run?",
             "type": "binary",
-            "binary_data": {"probability": 70, "yes_text": "Go running", "no_text": "Stay home"},
+            "binary_data": {"probability": 70, "probability_granularity": 0, "yes_text": "Go running", "no_text": "Stay home"},
         }
 
         response = await client.post("/api/v1/decisions/", json=decision_data, headers=auth_headers)

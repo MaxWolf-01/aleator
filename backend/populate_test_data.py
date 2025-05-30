@@ -356,6 +356,7 @@ async def populate_test_data():
             binary = BinaryDecision(
                 decision_id=decision.id,
                 probability=decision_data["probability"],
+                probability_granularity=0,
                 yes_text="Do it",
                 no_text="Skip it",
             )
@@ -405,6 +406,7 @@ async def populate_test_data():
         binary_pending = BinaryDecision(
             decision_id=pending_decision.id,
             probability=50,
+            probability_granularity=0,
             yes_text="Yes",
             no_text="No",
         )
