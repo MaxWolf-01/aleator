@@ -187,6 +187,8 @@
   important-instruction-reminders
   Do what has been asked; nothing more, nothing less.
   NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+  NEVER commit the external-docs directory to the repository. It is meant for local reference only and cannot be gitignored (because you wouldn't be able to see it without tool-use / I cant @mention it).
+
 ## UI/UX Principles & Learnings
 - **Single-page focus**: No separate analytics pages. Charts and metrics integrated directly into decision cards
 - **No fluff features**: No "Insights & Recommendations", aggregate metrics, or extra pie charts
