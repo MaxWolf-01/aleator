@@ -17,7 +17,7 @@ async def test_decimal_probability():
     """Test creating decisions with different probability granularities."""
     settings = get_settings()
     engine = create_async_engine(settings.database_url)
-    
+
     async with AsyncSession(engine) as session:
         # Create test user
         user = User(
@@ -28,7 +28,7 @@ async def test_decimal_probability():
         session.add(user)
         await session.commit()
         await session.refresh(user)
-        
+
         # Test decisions with different granularities
         test_cases = [
             {
@@ -47,7 +47,7 @@ async def test_decimal_probability():
                 "granularity": 2,
             },
         ]
-        
+
         for test_case in test_cases:
             # Create decision
             decision = Decision(
@@ -60,7 +60,7 @@ async def test_decimal_probability():
             session.add(decision)
             await session.commit()
             await session.refresh(decision)
-            
+
             # Create binary decision with specific granularity
             binary = BinaryDecision(
                 decision_id=decision.id,
@@ -70,7 +70,7 @@ async def test_decimal_probability():
                 no_text="No",
             )
             session.add(binary)
-            
+
             # Add probability history
             prob_history = ProbabilityHistory(
                 decision_id=decision.id,
@@ -78,10 +78,12 @@ async def test_decimal_probability():
                 changed_at=datetime.now(timezone.utc),
             )
             session.add(prob_history)
-            
+
             await session.commit()
-            print(f"✓ Created: {test_case['title']} - probability={test_case['probability']}, granularity={test_case['granularity']}")
-    
+            print(
+                f"✓ Created: {test_case['title']} - probability={test_case['probability']}, granularity={test_case['granularity']}"
+            )
+
     await engine.dispose()
     print("\nDecimal probability test complete!")
 
