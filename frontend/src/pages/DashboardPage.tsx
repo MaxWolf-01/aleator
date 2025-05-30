@@ -29,9 +29,9 @@ export function DashboardPage() {
     <div className="matsu-app relative">
       <div className="texture"></div>
       
-      <div className="relative z-10 p-4 md:p-6 max-w-7xl mx-auto">
+      <div className="relative z-10 p-4 md:p-6 lg:p-8 max-w-screen-2xl mx-auto">
         {/* Header */}
-        <div className="mb-6 md:mb-8">
+        <div className="mb-6 md:mb-8 lg:mb-10">
           <div className="flex items-start justify-between gap-4 mb-2">
             <div className="flex items-center gap-3">
               <Dice1 className="w-6 h-6 md:w-8 md:h-8 text-[oklch(0.71_0.097_111.7)]" />
@@ -57,11 +57,11 @@ export function DashboardPage() {
         </div>
 
         {/* Decision Cards */}
-        <div className="grid gap-6 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-6 md:gap-8 lg:gap-10 lg:grid-cols-2 xl:grid-cols-3">
           {isLoading ? (
             // Loading skeleton
             [...Array(3)].map((_, i) => (
-              <div key={i} className="matsu-card h-96 animate-pulse">
+              <div key={i} className="matsu-card h-96 lg:h-[26rem] animate-pulse">
                 <div className="p-6">
                   <div className="h-6 bg-[oklch(0.88_0.035_83.6)] rounded w-3/4 mb-4"></div>
                   <div className="h-4 bg-[oklch(0.88_0.035_83.6)] rounded w-1/2 mb-6"></div>

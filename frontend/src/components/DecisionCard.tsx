@@ -293,49 +293,51 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
   }, [cooldownEndsAt]);
 
   return (
-    <Card className="matsu-card relative overflow-hidden">
-      <div className="relative z-10">
-        <CardHeader className="pb-4">
-          <div className="flex items-start justify-between mb-2">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <CardTitle className="text-2xl font-semibold">
-                  {decision.title}
-                </CardTitle>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setEditDialogOpen(true)}
-                    className="w-7 h-7 rounded-md bg-[oklch(0.88_0.035_83.6)] hover:bg-[oklch(0.84_0.045_83.6)] border border-[oklch(0.78_0.063_80.8)] flex items-center justify-center text-[oklch(0.41_0.077_78.9)] hover:text-[oklch(0.31_0.077_78.9)] transition-all"
-                    title="Edit decision"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => setDeleteDialogOpen(true)}
-                    disabled={deleteMutation.isPending}
-                    className="w-7 h-7 rounded-md bg-[oklch(0.88_0.035_83.6)] hover:bg-[oklch(0.94_0.08_20)] border border-[oklch(0.78_0.063_80.8)] hover:border-[oklch(0.75_0.12_20)] flex items-center justify-center text-[oklch(0.41_0.077_78.9)] hover:text-[oklch(0.75_0.12_20)] transition-all disabled:opacity-50"
-                    title="Delete decision"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+    <Card className="matsu-card relative overflow-hidden py-0">
+      {/* Edit/Delete buttons - absolute positioned */}
+      <div className="absolute top-3 right-3 lg:top-4 lg:right-4 z-20 flex items-center gap-1">
+        <button
+          onClick={() => setEditDialogOpen(true)}
+          className="w-7 h-7 rounded-md bg-[oklch(0.88_0.035_83.6)] hover:bg-[oklch(0.84_0.045_83.6)] border border-[oklch(0.78_0.063_80.8)] flex items-center justify-center text-[oklch(0.41_0.077_78.9)] hover:text-[oklch(0.31_0.077_78.9)] transition-all"
+          title="Edit decision"
+        >
+          <Edit2 className="w-3.5 h-3.5" />
+        </button>
+        <button
+          onClick={() => setDeleteDialogOpen(true)}
+          disabled={deleteMutation.isPending}
+          className="w-7 h-7 rounded-md bg-[oklch(0.88_0.035_83.6)] hover:bg-[oklch(0.94_0.08_20)] border border-[oklch(0.78_0.063_80.8)] hover:border-[oklch(0.75_0.12_20)] flex items-center justify-center text-[oklch(0.41_0.077_78.9)] hover:text-[oklch(0.75_0.12_20)] transition-all disabled:opacity-50"
+          title="Delete decision"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      <div className="relative z-10 p-6">
+        <CardHeader className="p-0 pb-3">
+          <div className="pr-16">
+            <CardTitle className={`font-semibold break-all leading-tight ${
+              decision.title.length > 50 ? 'text-base md:text-lg' : 
+              decision.title.length > 35 ? 'text-lg md:text-xl' : 
+              'text-xl md:text-2xl'
+            }`}>
+              {decision.title}
+            </CardTitle>
+            {/* Show cooldown setting if enabled */}
+            {decision.cooldown_hours > 0 && (
+              <div className="flex items-center gap-1 text-xs text-[oklch(0.51_0.077_74.3)] mt-1">
+                <Clock className="w-3 h-3" />
+                <span>
+                  {formatCooldownHours(decision.cooldown_hours)} cooldown
+                </span>
               </div>
-              {/* Show cooldown setting if enabled */}
-              {decision.cooldown_hours > 0 && (
-                <div className="flex items-center gap-1 text-xs text-[oklch(0.51_0.077_74.3)]">
-                  <Clock className="w-3 h-3" />
-                  <span>
-                    {formatCooldownHours(decision.cooldown_hours)} cooldown
-                  </span>
-                </div>
-              )}
-            </div>
+            )}
           </div>
 
           {/* Prominent Outcome Display */}
           {pendingRoll && (
             <div
-              className={`p-4 rounded-xl mb-4 text-center ${
+              className={`p-4 rounded-xl text-center ${
                 pendingRoll.result === "yes" ? "result-yes" : "result-no"
               }`}
             >
@@ -395,16 +397,16 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
           )}
         </CardHeader>
 
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-5 px-0">
           {/* Probability & Roll Section for Binary Decisions */}
           {decision.type === "binary" && !pendingRoll && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
                   {getDiceIcon(localProbability)}
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl md:text-3xl font-bold">
+                      <span className="text-2xl md:text-3xl lg:text-4xl font-bold">
                         {localProbability}%
                       </span>
                     </div>
@@ -447,7 +449,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
             <Button
               onClick={handleRoll}
               disabled={rollMutation.isPending || (cooldownEndsAt !== null && new Date() < cooldownEndsAt)}
-              className={`w-full text-lg py-6 font-bold ${
+              className={`w-full text-lg lg:text-xl py-6 lg:py-8 font-bold ${
                 cooldownEndsAt && new Date() < cooldownEndsAt
                   ? 'opacity-50 cursor-not-allowed bg-[oklch(0.88_0.035_83.6)] hover:bg-[oklch(0.88_0.035_83.6)] text-[oklch(0.51_0.077_74.3)]'
                   : 'roll-button'
@@ -474,7 +476,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
 
           {/* Integrated Charts - only show if there's data */}
           {chartData.length > 0 && (
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <BarChart3 className="w-4 h-4" />
@@ -493,7 +495,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
                 )}
               </div>
 
-              <div className="h-32 md:h-36">
+              <div className="h-32 md:h-36 lg:h-40">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart
                     data={chartData}
@@ -518,7 +520,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
                       axisLine={false}
                       tickLine={false}
                       domain={[0, 100]}
-                      width={25}
+                      width={30}
                     />
                     <YAxis
                       yAxisId="right"
@@ -528,7 +530,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
                       axisLine={false}
                       tickLine={false}
                       domain={[0, 100]}
-                      width={25}
+                      width={30}
                     />
                     <RechartsTooltip
                       contentStyle={{
