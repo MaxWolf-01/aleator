@@ -210,6 +210,13 @@ class ApiClient {
   async exportData() {
     return this.request('/api/v1/user/export/');
   }
+
+  async reorderDecisions(orders: Array<{ id: string; order: number }>) {
+    return this.request('/api/v1/decisions/reorder/', {
+      method: 'POST',
+      body: JSON.stringify({ decision_orders: orders }),
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

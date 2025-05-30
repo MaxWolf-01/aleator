@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/lib/api';
@@ -22,6 +22,42 @@ export function DashboardPage() {
   const handleDecisionCreated = () => {
     refetch();
     setShowCreateDialog(false);
+  };
+
+  const reorderMutation = useMutation({
+    mutationFn: async (params: { decisionId: string; direction: 'up' | 'down' }) => {
+      const decisionIndex = decisions.findIndex(d => d.id === params.decisionId);
+      if (decisionIndex === -1) return;
+
+      const newOrders = [...decisions].map((d, index) => ({
+        id: d.id,
+        order: index
+      }));
+
+      // Swap with previous/next item
+      if (params.direction === 'up' && decisionIndex > 0) {
+        [newOrders[decisionIndex], newOrders[decisionIndex - 1]] = 
+        [newOrders[decisionIndex - 1], newOrders[decisionIndex]];
+      } else if (params.direction === 'down' && decisionIndex < decisions.length - 1) {
+        [newOrders[decisionIndex], newOrders[decisionIndex + 1]] = 
+        [newOrders[decisionIndex + 1], newOrders[decisionIndex]];
+      }
+
+      // Update order values
+      const reorderedList = newOrders.map((item, index) => ({
+        id: item.id,
+        order: index
+      }));
+
+      return apiClient.reorderDecisions(reorderedList);
+    },
+    onSuccess: () => {
+      refetch();
+    }
+  });
+
+  const handleReorder = (decisionId: string, direction: 'up' | 'down') => {
+    reorderMutation.mutate({ decisionId, direction });
   };
 
 
@@ -90,11 +126,14 @@ export function DashboardPage() {
             </div>
           ) : (
             // Decision cards
-            decisions.map((decision: DecisionWithDetails) => (
+            decisions.map((decision: DecisionWithDetails, index) => (
               <DecisionCard 
                 key={decision.id} 
                 decision={decision}
                 onUpdate={refetch}
+                onReorder={handleReorder}
+                canMoveUp={index > 0}
+                canMoveDown={index < decisions.length - 1}
               />
             ))
           )}

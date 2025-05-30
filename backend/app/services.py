@@ -20,9 +20,20 @@ from app.schemas import DecisionCreate, DecisionUpdate
 
 async def create_decision(user: User, decision_data: DecisionCreate, session: AsyncSession) -> Decision:
     """Create a new decision for a user."""
+    # Get max display_order for user's decisions
+    from sqlmodel import func
+
+    max_order_statement = select(func.max(Decision.display_order)).where(Decision.user_id == user.id)
+    max_order_result = await session.exec(max_order_statement)
+    max_order = max_order_result.first() or 0
+
     # Create the base decision
     decision = Decision(
-        user_id=user.id, title=decision_data.title, type=decision_data.type, cooldown_hours=decision_data.cooldown_hours
+        user_id=user.id,
+        title=decision_data.title,
+        type=decision_data.type,
+        cooldown_hours=decision_data.cooldown_hours,
+        display_order=max_order + 1,
     )
     session.add(decision)
     await session.commit()
@@ -40,12 +51,9 @@ async def create_decision(user: User, decision_data: DecisionCreate, session: As
             no_text=decision_data.binary_data.no_text,
         )
         session.add(binary_decision)
-        
+
         # Add initial probability history entry
-        prob_history = ProbabilityHistory(
-            decision_id=decision.id,
-            probability=decision_data.binary_data.probability
-        )
+        prob_history = ProbabilityHistory(decision_id=decision.id, probability=decision_data.binary_data.probability)
         session.add(prob_history)
 
     elif decision_data.type == DecisionType.MULTI_CHOICE:
@@ -96,7 +104,7 @@ async def get_user_decisions(user: User, session: AsyncSession) -> list[Decision
             selectinload(Decision.rolls),
             selectinload(Decision.probability_history),
         )
-        .order_by(Decision.created_at.desc())
+        .order_by(Decision.display_order.asc(), Decision.created_at.desc())
     )
     result = await session.exec(statement)
     return list(result.all())
@@ -127,6 +135,9 @@ async def update_decision(decision: Decision, update_data: DecisionUpdate, sessi
 
     if update_data.cooldown_hours is not None:
         decision.cooldown_hours = update_data.cooldown_hours
+
+    if update_data.display_order is not None:
+        decision.display_order = update_data.display_order
 
     # For binary decisions, update probability and text
     if decision.type == DecisionType.BINARY:

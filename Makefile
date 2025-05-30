@@ -70,7 +70,13 @@ migrate: ## Run database migrations
 
 seed: 
 	@echo "🌱 Seeding development database..."
-	python backend/populate_test_data.py
+	@cd backend && if [ -d ".venv" ]; then \
+		echo "Activating virtual environment..."; \
+		. .venv/bin/activate && python populate_test_data.py; \
+	else \
+		echo "⚠️  No virtual environment found, using Docker..."; \
+		docker compose -f ../docker-compose.dev.yml exec backend python populate_test_data.py; \
+	fi
 	@echo "✅ Database seeded with test user"
 
 # Utility commands

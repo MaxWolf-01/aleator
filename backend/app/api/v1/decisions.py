@@ -1,6 +1,7 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.auth import get_current_active_user
@@ -179,3 +180,29 @@ async def delete_decision(
     await session.delete(decision)
     await session.commit()
     return None
+
+
+class ReorderRequest(BaseModel):
+    decision_orders: list[dict[str, int]]  # [{"id": 1, "order": 0}, {"id": 2, "order": 1}]
+
+
+@router.post("/reorder", response_model=List[DecisionWithRollsResponse])
+async def reorder_decisions(
+    reorder_data: ReorderRequest,
+    current_user: User = Depends(get_current_active_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Reorder decisions by updating display_order."""
+    # Verify all decisions belong to the user and update their order
+    for item in reorder_data.decision_orders:
+        decision = await get_decision_by_id(item["id"], current_user, session)
+        if not decision:
+            raise HTTPException(status_code=404, detail=f"Decision {item['id']} not found")
+
+        decision.display_order = item["order"]
+
+    await session.commit()
+
+    # Return updated decisions list
+    decisions = await get_user_decisions(current_user, session)
+    return decisions

@@ -32,6 +32,7 @@ class Decision(SQLModel, table=True):
     title: str = Field(max_length=200)
     type: DecisionType
     cooldown_hours: float = Field(default=0, ge=0)  # 0 means no cooldown
+    display_order: int = Field(default=0)  # For custom ordering
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc), sa_column=Column(DateTime(timezone=True), nullable=False)
     )

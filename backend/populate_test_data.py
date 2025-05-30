@@ -36,6 +36,7 @@ def create_rolls_pattern(
     rolls = []
     prob_history = []
     current_date = start_date
+    has_pending_roll = False  # Track if we've already created a pending roll
 
     if pattern_type == "dense_daily":
         # Multiple rolls per day
@@ -44,7 +45,12 @@ def create_rolls_pattern(
             for i in range(num_rolls):
                 roll_time = current_date + timedelta(hours=random.randint(0, 23), minutes=random.randint(0, 59))
                 result = "yes" if random.randint(1, 100) <= probability else "no"
-                followed = random.choice([True, False, None]) if random.random() > 0.1 else None
+                # Only allow one pending roll per decision
+                if not has_pending_roll and random.random() < 0.05:  # 5% chance of pending
+                    followed = None
+                    has_pending_roll = True
+                else:
+                    followed = random.choice([True, False])
 
                 roll = Roll(
                     decision_id=decision_id,

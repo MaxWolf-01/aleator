@@ -68,6 +68,7 @@ class DecisionUpdate(BaseModel):
     probability: int | None = Field(None, ge=1, le=99)  # For binary decisions
     yes_text: str | None = Field(None, max_length=100)  # For binary decisions
     no_text: str | None = Field(None, max_length=100)  # For binary decisions
+    display_order: int | None = None  # For reordering
 
 
 class BinaryDecisionResponse(BaseModel):
@@ -91,6 +92,7 @@ class DecisionResponse(BaseModel):
     title: str
     type: DecisionType
     cooldown_hours: float
+    display_order: int
     created_at: datetime
     updated_at: datetime
     binary_decision: BinaryDecisionResponse | None = None
@@ -127,6 +129,7 @@ class DecisionWithRollsResponse(BaseModel):
     title: str
     type: DecisionType
     cooldown_hours: float
+    display_order: int
     created_at: datetime
     updated_at: datetime
     binary_decision: BinaryDecisionResponse | None = None

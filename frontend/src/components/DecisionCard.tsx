@@ -20,6 +20,8 @@ import {
   XCircle,
   Clock,
   History,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import {
   Line,
@@ -46,9 +48,12 @@ import {
 interface DecisionCardProps {
   decision: DecisionWithDetails;
   onUpdate: () => void;
+  onReorder: (decisionId: string, direction: 'up' | 'down') => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
 }
 
-export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
+export function DecisionCard({ decision, onUpdate, onReorder, canMoveUp, canMoveDown }: DecisionCardProps) {
   const [pendingRoll, setPendingRoll] = useState<Roll | null>(null);
   const [localProbability, setLocalProbability] = useState(
     decision.binary_decision?.probability || 50,
@@ -57,17 +62,19 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [cooldownEndsAt, setCooldownEndsAt] = useState<Date | null>(null);
   const [showFullHistory, setShowFullHistory] = useState(false);
+  const [isRolling, setIsRolling] = useState(false);
+  const [animatedDiceIndex, setAnimatedDiceIndex] = useState(0);
 
-  // Fetch pending roll and check cooldown on mount
+  // Check for pending roll in existing rolls data and calculate cooldown
   useEffect(() => {
-    const fetchPendingRoll = async () => {
-      try {
-        const pending = await apiClient.getPendingRoll(decision.id) as Roll;
-        setPendingRoll(pending);
-      } catch {
-        // No pending roll found, which is fine
+    // Check if there's a pending roll in the existing rolls data
+    // There should only ever be one pending roll per decision
+    if (decision.rolls && decision.rolls.length > 0) {
+      const pendingRollFromData = decision.rolls.find(r => r.followed === null);
+      if (pendingRollFromData) {
+        setPendingRoll(pendingRollFromData);
       }
-    };
+    }
     
     // Calculate cooldown from last confirmed roll
     if (decision.cooldown_hours > 0 && decision.rolls && decision.rolls.length > 0) {
@@ -83,16 +90,36 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
         }
       }
     }
-    
-    fetchPendingRoll();
   }, [decision.id, decision.cooldown_hours, decision.rolls]);
+
+  // Dice roll animation effect
+  useEffect(() => {
+    if (isRolling) {
+      const interval = setInterval(() => {
+        setAnimatedDiceIndex((prev) => (prev + 1) % 6);
+      }, 80); // Change dice face every 80ms (faster for more visual effect)
+
+      // Stop animation after 2 seconds (longer duration)
+      const timeout = setTimeout(() => {
+        setIsRolling(false);
+        clearInterval(interval);
+      }, 2000);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
+    }
+  }, [isRolling]);
 
   const rollMutation = useMutation<Roll, Error, void>({
     mutationFn: () => apiClient.rollDecision(decision.id) as Promise<Roll>,
     onSuccess: (roll: Roll) => {
       setPendingRoll(roll);
+      setIsRolling(false); // Stop animation when roll completes
     },
     onError: (error) => {
+      setIsRolling(false); // Stop animation on error
       // If there's a pending roll error, try to fetch it
       if (error.message.includes("pending roll")) {
         const fetchPending = async () => {
@@ -152,6 +179,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
   });
 
   const handleRoll = () => {
+    setIsRolling(true);
     rollMutation.mutate();
   };
 
@@ -187,6 +215,19 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
     if (probability <= 66) return <Dice4 className={iconClass} />;
     if (probability <= 83) return <Dice5 className={iconClass} />;
     return <Dice6 className={iconClass} />;
+  };
+
+  const getAnimatedDiceIcon = () => {
+    const iconClass = "w-8 h-8";
+    const diceIcons = [
+      <Dice1 className={iconClass} />,
+      <Dice2 className={iconClass} />,
+      <Dice3 className={iconClass} />,
+      <Dice4 className={iconClass} />,
+      <Dice5 className={iconClass} />,
+      <Dice6 className={iconClass} />,
+    ];
+    return diceIcons[animatedDiceIndex];
   };
 
   // Calculate stats - only count confirmed rolls (where followed is not null)
@@ -294,8 +335,26 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
 
   return (
     <Card className="matsu-card relative overflow-hidden py-0">
-      {/* Edit/Delete buttons - absolute positioned */}
+      {/* Edit/Delete/Reorder buttons - absolute positioned */}
       <div className="absolute top-3 right-3 lg:top-4 lg:right-4 z-20 flex items-center gap-1">
+        {/* Reorder buttons */}
+        <button
+          onClick={() => onReorder(decision.id, 'up')}
+          disabled={!canMoveUp}
+          className="w-7 h-7 rounded-md bg-[oklch(0.88_0.035_83.6)] hover:bg-[oklch(0.84_0.045_83.6)] border border-[oklch(0.78_0.063_80.8)] flex items-center justify-center text-[oklch(0.41_0.077_78.9)] hover:text-[oklch(0.31_0.077_78.9)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Move up"
+        >
+          <ChevronUp className="w-3.5 h-3.5" />
+        </button>
+        <button
+          onClick={() => onReorder(decision.id, 'down')}
+          disabled={!canMoveDown}
+          className="w-7 h-7 rounded-md bg-[oklch(0.88_0.035_83.6)] hover:bg-[oklch(0.84_0.045_83.6)] border border-[oklch(0.78_0.063_80.8)] flex items-center justify-center text-[oklch(0.41_0.077_78.9)] hover:text-[oklch(0.31_0.077_78.9)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Move down"
+        >
+          <ChevronDown className="w-3.5 h-3.5" />
+        </button>
+        <div className="w-px h-5 bg-[oklch(0.78_0.063_80.8)] mx-0.5" />
         <button
           onClick={() => setEditDialogOpen(true)}
           className="w-7 h-7 rounded-md bg-[oklch(0.88_0.035_83.6)] hover:bg-[oklch(0.84_0.045_83.6)] border border-[oklch(0.78_0.063_80.8)] flex items-center justify-center text-[oklch(0.41_0.077_78.9)] hover:text-[oklch(0.31_0.077_78.9)] transition-all"
@@ -315,7 +374,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
 
       <div className="relative z-10 p-6">
         <CardHeader className="p-0 pb-3">
-          <div className="pr-16">
+          <div className="pr-32 lg:pr-40">
             <CardTitle className={`font-semibold break-all leading-tight ${
               decision.title.length > 50 ? 'text-base md:text-lg' : 
               decision.title.length > 35 ? 'text-lg md:text-xl' : 
@@ -403,7 +462,7 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
             <div className="space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
-                  {getDiceIcon(localProbability)}
+                  {isRolling ? getAnimatedDiceIcon() : getDiceIcon(localProbability)}
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-2xl md:text-3xl lg:text-4xl font-bold">
@@ -448,12 +507,12 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
           {!pendingRoll && (
             <Button
               onClick={handleRoll}
-              disabled={rollMutation.isPending || (cooldownEndsAt !== null && new Date() < cooldownEndsAt)}
+              disabled={rollMutation.isPending || isRolling || (cooldownEndsAt !== null && new Date() < cooldownEndsAt)}
               className={`w-full text-lg lg:text-xl py-6 lg:py-8 font-bold ${
                 cooldownEndsAt && new Date() < cooldownEndsAt
                   ? 'opacity-50 cursor-not-allowed bg-[oklch(0.88_0.035_83.6)] hover:bg-[oklch(0.88_0.035_83.6)] text-[oklch(0.51_0.077_74.3)]'
                   : 'roll-button'
-              }`}
+              } ${isRolling ? 'animate-pulse' : ''}`}
             >
               {cooldownEndsAt && new Date() < cooldownEndsAt ? (
                 <div className="flex flex-col items-center gap-1">
@@ -465,6 +524,11 @@ export function DecisionCard({ decision, onUpdate }: DecisionCardProps) {
                     Available {formatCooldownTime(cooldownEndsAt)}
                   </span>
                 </div>
+              ) : isRolling ? (
+                <>
+                  {getAnimatedDiceIcon()}
+                  <span className="ml-2">Rolling...</span>
+                </>
               ) : (
                 <>
                   <Dice1 className="w-5 h-5 mr-2" />
