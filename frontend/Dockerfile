@@ -12,7 +12,11 @@ RUN bun install --frozen-lockfile
 # Copy source code
 COPY . .
 
-# Build the application
+# Accept build argument for API URL
+ARG VITE_API_BASE_URL=https://api.aleatoric.agency
+
+# Build the application with environment variable
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN bun run build
 
 # Production stage
