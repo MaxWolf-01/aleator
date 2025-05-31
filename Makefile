@@ -184,3 +184,55 @@ shell: ## Access backend shell
 venv: ## Create and activate backend virtual environment (local development)
 	@echo "🐍 Setting up Python virtual environment..."
 	cd backend && uv venv .venv && echo "✅ Virtual environment created. Run 'source backend/.venv/bin/activate' to activate"
+
+# Production commands (use with care on production server!)
+prod-up: ## Start production environment
+	@echo "🚀 Starting Aleator production environment..."
+	docker compose up -d
+	@echo "✅ Production environment started!"
+
+prod-down: ## Stop production environment (preserves data)
+	@echo "🛑 Stopping production services..."
+	docker compose down
+	@echo "✅ Production services stopped"
+
+prod-rebuild: ## Rebuild and restart production (DELETES ALL DATA!)
+	@echo "⚠️  WARNING: This will DELETE ALL DATA!"
+	@read -p "Are you sure? Type 'yes' to continue: " confirm; \
+	if [ "$$confirm" = "yes" ]; then \
+		echo "🗑️  Removing all data and rebuilding..."; \
+		docker compose down -v; \
+		docker compose build --no-cache; \
+		docker compose up -d; \
+		echo "✅ Production environment rebuilt"; \
+	else \
+		echo "❌ Cancelled"; \
+	fi
+
+prod-update: ## Update and redeploy production (preserves data)
+	@echo "🔄 Updating production deployment..."
+	git pull
+	docker compose build
+	docker compose up -d
+	@echo "✅ Production updated and redeployed"
+
+prod-logs: ## View production logs
+	docker compose logs -f
+
+prod-backup: ## Backup production database
+	@echo "💾 Backing up production database..."
+	@BACKUP_FILE="backup_$$(date +%Y%m%d_%H%M%S).sql"; \
+	docker exec $$(docker compose ps -q postgres) pg_dump -U aleator aleator > $$BACKUP_FILE && \
+	echo "✅ Database backed up to $$BACKUP_FILE"
+
+prod-restore: ## Restore production database from backup
+	@echo "⚠️  WARNING: This will overwrite the current database!"
+	@read -p "Backup file path: " backup_file; \
+	read -p "Are you sure? Type 'yes' to continue: " confirm; \
+	if [ "$$confirm" = "yes" ]; then \
+		echo "📥 Restoring database from $$backup_file..."; \
+		docker exec -i $$(docker compose ps -q postgres) psql -U aleator aleator < $$backup_file && \
+		echo "✅ Database restored"; \
+	else \
+		echo "❌ Cancelled"; \
+	fi

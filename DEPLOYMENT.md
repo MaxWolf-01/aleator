@@ -39,7 +39,7 @@ Make these changes:
 - `JWT_SECRET_KEY`: Set a different strong secret (e.g., generate with `openssl rand -base64 32`)
 - `DATABASE_URL`: Replace `your_password_here` with your POSTGRES_PASSWORD
 - `CORS_ORIGINS`: Change to `["https://aleatoric.agency", "https://www.aleatoric.agency"]`
-- `VITE_API_BASE_URL`: Set to `https://www.aleatoric.agency/api`
+- `VITE_API_BASE_URL`: Set to `https://www.aleatoric.agency`
 
 ## Step 3: Build and Start Services
 
@@ -65,6 +65,7 @@ server {
     server_name aleatoric.agency www.aleatoric.agency;
     
     location /api/ {
+        # IMPORTANT: No trailing slash on proxy_pass to preserve the full path
         proxy_pass http://localhost:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
