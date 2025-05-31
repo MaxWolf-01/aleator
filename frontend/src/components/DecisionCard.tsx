@@ -85,6 +85,7 @@ export function DecisionCard({
   const [showFullHistory, setShowFullHistory] = useState(false);
   const [isRolling, setIsRolling] = useState(false);
   const [animatedDiceIndex, setAnimatedDiceIndex] = useState(0);
+  const [currentAnimationDuration, setCurrentAnimationDuration] = useState(0);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const longPressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -148,15 +149,19 @@ export function DecisionCard({
   // Dice roll animation effect
   useEffect(() => {
     if (isRolling && animationsEnabled) {
+      // Random duration between 800ms (snappy) and 1800ms (not too long)
+      const animationDuration = 800 + Math.random() * 1000;
+      setCurrentAnimationDuration(animationDuration);
+      
       const interval = setInterval(() => {
         setAnimatedDiceIndex((prev) => (prev + 1) % 6);
       }, 80); // Change dice face every 80ms (faster for more visual effect)
 
-      // Stop animation after 2 seconds (longer duration)
+      // Stop animation after random duration
       const timeout = setTimeout(() => {
         setIsRolling(false);
         clearInterval(interval);
-      }, 2000);
+      }, animationDuration);
 
       return () => {
         clearInterval(interval);
@@ -218,9 +223,10 @@ export function DecisionCard({
     onSuccess: (roll: Roll) => {
       if (animationsEnabled) {
         // Don't show result immediately - wait for animation to finish
+        // Show result about 200ms before animation ends for better feel
         setTimeout(() => {
           setPendingRoll(roll);
-        }, 1800); // Show result just before animation ends
+        }, Math.max(100, currentAnimationDuration - 200));
       } else {
         // No animation - show result immediately
         setPendingRoll(roll);
