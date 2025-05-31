@@ -1,6 +1,6 @@
 // User and Authentication Types
 export interface User {
-  id: string;
+  id: number;
   email: string;
   created_at: string;
   is_active: boolean;
@@ -26,8 +26,8 @@ export interface RegisterCredentials {
 export type DecisionType = 'binary' | 'multi_choice';
 
 export interface Decision {
-  id: string;
-  user_id: string;
+  id: number;
+  user_id: number;
   title: string;
   type: DecisionType;
   cooldown_hours: number;
@@ -37,23 +37,33 @@ export interface Decision {
 }
 
 export interface BinaryDecision {
-  decision_id: string;
+  decision_id: number;
   probability: number;
   probability_granularity: number; // 0=whole, 1=0.1, 2=0.01
   yes_text: string;
   no_text: string;
 }
 
+export interface WeightHistory {
+  id: number;
+  choice_id: number;
+  weight: number;
+  changed_at: string;
+}
+
 export interface Choice {
-  id: string;
-  decision_id: string;
+  id: number;
+  decision_id: number;
   name: string;
   weight: number;
+  display_order: number;
+  weight_history?: WeightHistory[];
 }
 
 export interface MultiChoiceDecision {
-  decision_id: string;
+  decision_id: number;
   choices: Choice[];
+  weight_granularity: number; // 0=whole, 1=0.1, 2=0.01
 }
 
 export interface DecisionWithDetails extends Decision {
@@ -64,19 +74,34 @@ export interface DecisionWithDetails extends Decision {
 }
 
 // Roll and Tracking Types
+export interface RollChoiceWeight {
+  choice_id: number;
+  choice_name: string;
+  weight: number;
+}
+
 export interface Roll {
-  id: string;
-  decision_id: string;
+  id: number;
+  decision_id: number;
   result: string; // For binary: "yes" | "no", for multi: choice name
   followed: boolean | null; // null = pending, true/false = confirmed
+  probability?: number; // For binary decisions - the probability used for this roll
+  choice_weights: RollChoiceWeight[]; // For multi-choice - the weights used for this roll
   created_at: string;
 }
 
 export interface ProbabilityHistory {
-  id: string;
-  decision_id: string;
+  id: number;
+  decision_id: number;
   probability: number;
   changed_at: string;
+}
+
+// API response type for rolling
+export interface RollResult {
+  id: number;
+  result: string;
+  created_at: string;
 }
 
 // Form Types

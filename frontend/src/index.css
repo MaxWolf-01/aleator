@@ -296,6 +296,13 @@
   color: oklch(0.35 0.05 25);
 }
 
+.result-choice {
+  background: oklch(0.87 0.06 220);
+  border-color: oklch(0.77 0.10 220);
+  box-shadow: 0 2px 0 0 oklch(0.77 0.10 220);
+  color: oklch(0.25 0.05 220);
+}
+
 .roll-button {
   background: oklch(0.71 0.097 111.7);
   border: 2px solid oklch(0.59 0.096 111.8);

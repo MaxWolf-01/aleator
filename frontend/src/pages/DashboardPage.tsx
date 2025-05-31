@@ -25,7 +25,7 @@ export function DashboardPage() {
   };
 
   const reorderMutation = useMutation({
-    mutationFn: async (params: { decisionId: string; direction: 'up' | 'down' }) => {
+    mutationFn: async (params: { decisionId: number; direction: 'up' | 'down' }) => {
       const decisionIndex = decisions.findIndex(d => d.id === params.decisionId);
       if (decisionIndex === -1) return;
 
@@ -56,7 +56,7 @@ export function DashboardPage() {
     }
   });
 
-  const handleReorder = (decisionId: string, direction: 'up' | 'down') => {
+  const handleReorder = (decisionId: number, direction: 'up' | 'down') => {
     reorderMutation.mutate({ decisionId, direction });
   };
 

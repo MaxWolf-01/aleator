@@ -13,6 +13,7 @@ from app.schemas import (
     DecisionUpdate,
     DecisionWithRollsResponse,
     RollConfirmation,
+    RollRequest,
     RollResult,
 )
 from app.services import (
@@ -105,6 +106,7 @@ async def get_decision_pending_roll(
 @router.post("/{decision_id}/roll", response_model=RollResult)
 async def roll_decision_endpoint(
     decision_id: int,
+    roll_request: RollRequest | None = None,
     current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db_session),
 ):
@@ -127,7 +129,7 @@ async def roll_decision_endpoint(
         )
 
     try:
-        roll = await roll_decision(decision, session)
+        roll = await roll_decision(decision, session, roll_request)
         return roll
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

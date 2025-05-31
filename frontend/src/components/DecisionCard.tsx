@@ -12,6 +12,7 @@ import {
   Dice4,
   Dice5,
   Dice6,
+  Dices,
   Plus,
   Minus,
   BarChart3,
@@ -33,6 +34,7 @@ import {
   ResponsiveContainer,
   ComposedChart,
   Area,
+  LineChart,
 } from "recharts";
 import { EditDecisionDialog } from "./EditDecisionDialog";
 import {
@@ -49,7 +51,7 @@ import {
 interface DecisionCardProps {
   decision: DecisionWithDetails;
   onUpdate: () => void;
-  onReorder: (decisionId: string, direction: "up" | "down") => void;
+  onReorder: (decisionId: number, direction: "up" | "down") => void;
   canMoveUp: boolean;
   canMoveDown: boolean;
 }
@@ -66,6 +68,17 @@ export function DecisionCard({
   const [localProbability, setLocalProbability] = useState(
     decision.binary_decision?.probability || 50,
   );
+  const [localChoiceWeights, setLocalChoiceWeights] = useState<
+    Record<number, number>
+  >(() => {
+    const weights: Record<number, number> = {};
+    if (decision.multi_choice_decision) {
+      decision.multi_choice_decision.choices.forEach((choice) => {
+        weights[choice.id] = choice.weight;
+      });
+    }
+    return weights;
+  });
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [cooldownEndsAt, setCooldownEndsAt] = useState<Date | null>(null);
@@ -74,6 +87,17 @@ export function DecisionCard({
   const [animatedDiceIndex, setAnimatedDiceIndex] = useState(0);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const longPressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Update local weights only when decision ID changes or on mount
+  useEffect(() => {
+    if (decision.multi_choice_decision) {
+      const weights: Record<number, number> = {};
+      decision.multi_choice_decision.choices.forEach((choice) => {
+        weights[choice.id] = choice.weight;
+      });
+      setLocalChoiceWeights(weights);
+    }
+  }, [decision.id]); // Only depend on decision ID, not the whole object
 
   // Check for pending roll in existing rolls data and calculate cooldown
   useEffect(() => {
@@ -85,6 +109,17 @@ export function DecisionCard({
       );
       if (pendingRollFromData) {
         setPendingRoll(pendingRollFromData);
+        
+        // Update local state to match the pending roll's captured values
+        if (decision.type === "binary" && pendingRollFromData.probability !== undefined) {
+          setLocalProbability(pendingRollFromData.probability);
+        } else if (decision.type === "multi_choice" && pendingRollFromData.choice_weights) {
+          const newWeights: Record<number, number> = {};
+          pendingRollFromData.choice_weights.forEach((cw) => {
+            newWeights[cw.choice_id] = cw.weight;
+          });
+          setLocalChoiceWeights(newWeights);
+        }
       }
     }
 
@@ -134,7 +169,52 @@ export function DecisionCard({
   }, [isRolling, animationsEnabled]);
 
   const rollMutation = useMutation<Roll, Error, void>({
-    mutationFn: () => apiClient.rollDecision(decision.id) as Promise<Roll>,
+    mutationFn: () => {
+      // Prepare roll data with current weights/probability
+      const rollData: any = {};
+
+      if (decision.type === "binary") {
+        const probabilityChanged =
+          Math.abs(
+            localProbability - (decision.binary_decision?.probability || 50),
+          ) > 0.001;
+        if (probabilityChanged) {
+          rollData.probability = localProbability;
+        }
+      } else if (
+        decision.type === "multi_choice" &&
+        decision.multi_choice_decision
+      ) {
+        // Check if any weights were changed
+        const weightsChanged = decision.multi_choice_decision.choices.some(
+          (choice) => localChoiceWeights[choice.id] !== choice.weight,
+        );
+        if (weightsChanged) {
+          // Ensure weights sum to exactly 100
+          const choices = decision.multi_choice_decision.choices.map(
+            (choice) => ({
+              id: choice.id,
+              weight: localChoiceWeights[choice.id] || choice.weight,
+            }),
+          );
+
+          // Verify sum is 100
+          const sum = choices.reduce((acc, c) => acc + c.weight, 0);
+          if (Math.abs(sum - 100) > 0.001) {
+            // Adjust the largest weight to make it exactly 100
+            const sorted = [...choices].sort((a, b) => b.weight - a.weight);
+            sorted[0].weight += 100 - sum;
+          }
+
+          rollData.choices = choices;
+        }
+      }
+
+      return apiClient.rollDecision(
+        decision.id,
+        Object.keys(rollData).length > 0 ? rollData : undefined,
+      ) as Promise<Roll>;
+    },
     onSuccess: (roll: Roll) => {
       if (animationsEnabled) {
         // Don't show result immediately - wait for animation to finish
@@ -180,24 +260,33 @@ export function DecisionCard({
     mutationFn: async (followed: boolean) => {
       if (!pendingRoll) throw new Error("No pending roll");
 
-      // Update probability along with confirmation
-      const probabilityChanged =
-        Math.abs(localProbability - (decision.binary_decision?.probability || 50)) > 0.001;
-
-      if (probabilityChanged && decision.type === "binary") {
-        await apiClient.updateDecision(decision.id, {
-          probability: localProbability,
-        });
-      }
-
-      // Confirm the roll with both decision ID and roll ID
+      // Simply confirm the roll - weights were already captured at roll time
       return apiClient.confirmFollowThrough(
         decision.id,
         pendingRoll.id,
         followed,
       );
     },
-    onSuccess: () => {
+    onSuccess: (_, followed) => {
+      // If user followed through, update local state to match what was saved
+      if (followed && pendingRoll) {
+        if (
+          decision.type === "binary" &&
+          pendingRoll.probability !== undefined
+        ) {
+          setLocalProbability(pendingRoll.probability);
+        } else if (
+          decision.type === "multi_choice" &&
+          pendingRoll.choice_weights
+        ) {
+          const newWeights: Record<number, number> = {};
+          pendingRoll.choice_weights.forEach((cw) => {
+            newWeights[cw.choice_id] = cw.weight;
+          });
+          setLocalChoiceWeights(newWeights);
+        }
+      }
+
       setPendingRoll(null);
 
       // Set cooldown immediately if decision has cooldown_hours configured
@@ -229,13 +318,44 @@ export function DecisionCard({
     const step = granularity === 0 ? 1 : granularity === 1 ? 0.1 : 0.01;
     const min = granularity === 0 ? 1 : 0.01;
     const max = granularity === 0 ? 99 : 99.99;
-    
+
     setLocalProbability((prev) => {
       const newProb = Math.max(min, Math.min(max, prev + change * step));
       // Round to appropriate decimal places
       return Math.round(newProb / step) * step;
     });
     // DON'T save immediately - wait for confirmation
+  };
+
+  const adjustChoiceWeight = (choiceId: number, change: number) => {
+    if (!decision.multi_choice_decision) return;
+
+    setLocalChoiceWeights((prevWeights) => {
+      const granularity =
+        decision.multi_choice_decision!.weight_granularity || 0;
+      const step = granularity === 0 ? 1 : granularity === 1 ? 0.1 : 0.01;
+      const minWeight = granularity === 0 ? 1 : granularity === 1 ? 0.1 : 0.01;
+      const maxWeight =
+        granularity === 0 ? 99 : granularity === 1 ? 99.9 : 99.99;
+
+      const newWeights = { ...prevWeights };
+      const currentWeight =
+        newWeights[choiceId] ||
+        decision.multi_choice_decision!.choices.find((c) => c.id === choiceId)
+          ?.weight ||
+        0;
+
+      // Simply adjust the weight within bounds
+      const newWeight = Math.max(
+        minWeight,
+        Math.min(maxWeight, currentWeight + change * step),
+      );
+
+      // Round to appropriate precision
+      newWeights[choiceId] = Math.round(newWeight / step) * step;
+
+      return newWeights;
+    });
   };
 
   const handleProbabilityMouseDown = (change: number) => {
@@ -260,6 +380,39 @@ export function DecisionCard({
   };
 
   const handleProbabilityMouseUp = () => {
+    // Clear timers
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    if (longPressIntervalRef.current) {
+      clearInterval(longPressIntervalRef.current);
+      longPressIntervalRef.current = null;
+    }
+  };
+
+  const handleChoiceWeightMouseDown = (choiceId: number, change: number) => {
+    // Clear any existing timers first
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+    }
+    if (longPressIntervalRef.current) {
+      clearInterval(longPressIntervalRef.current);
+    }
+
+    // Initial adjustment
+    adjustChoiceWeight(choiceId, change);
+
+    // Start long press timer
+    longPressTimerRef.current = setTimeout(() => {
+      // After 700ms, start rapid adjustments
+      longPressIntervalRef.current = setInterval(() => {
+        adjustChoiceWeight(choiceId, change);
+      }, 125); // Adjust every 125ms for smooth rapid change
+    }, 700);
+  };
+
+  const handleChoiceWeightMouseUp = () => {
     // Clear timers
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
@@ -327,6 +480,19 @@ export function DecisionCard({
   const followThroughRate =
     totalRolls > 0 ? Math.round((followedCount / totalRolls) * 100) : 0;
 
+  // Calculate if multi-choice weights are valid
+  const multiChoiceWeightTotal =
+    decision.type === "multi_choice" && decision.multi_choice_decision
+      ? decision.multi_choice_decision.choices.reduce((sum, choice) => {
+          const weight =
+            localChoiceWeights[choice.id] !== undefined
+              ? localChoiceWeights[choice.id]
+              : choice.weight;
+          return sum + weight;
+        }, 0)
+      : 100;
+  const multiChoiceWeightsValid = Math.abs(multiChoiceWeightTotal - 100) < 0.01;
+
   // Generate chart data from confirmed rolls only
   const rollsToShow = showFullHistory
     ? confirmedRolls
@@ -352,23 +518,11 @@ export function DecisionCard({
         ? Math.round((followedUpToThis / confirmedUpToThis.length) * 100)
         : 0;
 
-    // Find the probability used for this roll
-    // Since probability updates happen when confirming rolls, we look for
-    // the probability change that corresponds to this roll's confirmation
+    // Use the probability from the roll itself (new model)
+    const probabilityAtRoll =
+      roll.probability || decision.binary_decision?.probability || 50;
+
     const rollDate = new Date(roll.created_at);
-    const probHistory = decision.probability_history || [];
-    
-    // Simple approach: for the Nth confirmed roll, use the Nth probability from history
-    // (or the most recent one if there are fewer probability entries)
-    const rollIndexInConfirmed = confirmedRolls.indexOf(roll);
-    const sortedProbHistory = [...probHistory].sort(
-      (a, b) => new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime()
-    );
-    
-    // Use the probability from the corresponding index, or the last one available
-    const probabilityAtRoll = sortedProbHistory[Math.min(rollIndexInConfirmed, sortedProbHistory.length - 1)]?.probability || 
-                             decision.binary_decision?.probability || 
-                             50;
 
     // Format date intelligently
     const formatDate = () => {
@@ -390,6 +544,32 @@ export function DecisionCard({
         year: "2-digit",
       });
     };
+
+    // For multi-choice decisions, we need to track weight history
+    if (decision.type === "multi_choice") {
+      const choiceData: Record<string, number | string> = {
+        decision:
+          showFullHistory && rollsToShow.length > 10
+            ? formatDate()
+            : `#${actualIndex + 1}`,
+        followThrough: followThroughRateAtPoint,
+      };
+
+      // Add weight data for each choice from the roll's captured weights
+      if (roll.choice_weights && roll.choice_weights.length > 0) {
+        // Use weights from the roll itself
+        roll.choice_weights.forEach((cw) => {
+          choiceData[`weight_${cw.choice_name}`] = cw.weight;
+        });
+      } else {
+        // Fallback for old data without captured weights
+        decision.multi_choice_decision?.choices.forEach((choice) => {
+          choiceData[`weight_${choice.name}`] = choice.weight;
+        });
+      }
+
+      return choiceData;
+    }
 
     return {
       decision:
@@ -443,6 +623,46 @@ export function DecisionCard({
       setCooldownEndsAt(null);
     }
   }, [cooldownEndsAt]);
+
+  // Get the result display for multi-choice
+  const getMultiChoiceResultDisplay = () => {
+    if (!pendingRoll || decision.type !== "multi_choice") return null;
+
+    // Find the choice that was selected (not used currently but might be useful later)
+    // const selectedChoice = decision.multi_choice_decision?.choices.find(
+    //   c => c.name === pendingRoll.result
+    // );
+
+    return (
+      <div className="p-4 rounded-xl text-center result-choice">
+        <div className="flex items-center justify-center gap-3 mb-1">
+          <span className="text-2xl font-bold">{pendingRoll.result}</span>
+        </div>
+        <p className="text-sm opacity-90">Alea iacta est 🎲</p>
+
+        {/* Follow-through Tracking */}
+        <div className="mt-4 space-y-3">
+          <p className="text-sm font-medium">Did you follow this decision?</p>
+          <div className="flex gap-2 justify-center">
+            <Button
+              onClick={() => handleConfirm(true)}
+              className="flex-1 md:flex-none min-h-[44px] font-medium border-2 bg-[oklch(0.95_0.02_220)] hover:bg-[oklch(0.98_0.01_220)] border-[oklch(0.67_0.08_220)] text-[oklch(0.25_0.05_220)]"
+              disabled={confirmMutation.isPending}
+            >
+              ✓ Yes, I did
+            </Button>
+            <Button
+              onClick={() => handleConfirm(false)}
+              className="flex-1 md:flex-none min-h-[44px] font-medium border-2 bg-[oklch(0.25_0.05_220)]/8 hover:bg-[oklch(0.25_0.05_220)]/15 border-[oklch(0.67_0.08_220)] text-[oklch(0.25_0.05_220)]"
+              disabled={confirmMutation.isPending}
+            >
+              ✗ No, I didn't
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <Card className="matsu-card relative overflow-hidden py-0">
@@ -509,65 +729,60 @@ export function DecisionCard({
           </div>
 
           {/* Prominent Outcome Display */}
-          {pendingRoll && (
-            <div
-              className={`p-4 rounded-xl text-center ${
-                pendingRoll.result === "yes" ? "result-yes" : "result-no"
-              }`}
-            >
-              <div className="flex items-center justify-center gap-3 mb-1">
-                {pendingRoll.result === "yes" ? (
-                  <CheckCircle className="w-6 h-6" />
-                ) : (
-                  <XCircle className="w-6 h-6" />
-                )}
-                <span className="text-2xl font-bold">
-                  {pendingRoll.result === "yes"
-                    ? decision.binary_decision?.yes_text || "Yes"
-                    : decision.binary_decision?.no_text || "No"}
-                </span>
-              </div>
+          {pendingRoll &&
+            (decision.type === "binary" ? (
+              <div
+                className={`p-4 rounded-xl text-center ${
+                  pendingRoll.result === "yes" ? "result-yes" : "result-no"
+                }`}
+              >
+                <div className="flex items-center justify-center gap-3 mb-1">
+                  {pendingRoll.result === "yes" ? (
+                    <CheckCircle className="w-6 h-6" />
+                  ) : (
+                    <XCircle className="w-6 h-6" />
+                  )}
+                  <span className="text-2xl font-bold">
+                    {pendingRoll.result === "yes"
+                      ? decision.binary_decision?.yes_text || "Yes"
+                      : decision.binary_decision?.no_text || "No"}
+                  </span>
+                </div>
 
-              {/* Follow-through Tracking */}
-              <div className="mt-4 space-y-3">
-                <p className="text-sm font-medium">
-                  Did you follow this decision?
-                </p>
-                <div className="flex gap-2 justify-center">
-                  <Button
-                    onClick={() => handleConfirm(true)}
-                    className={`flex-1 md:flex-none min-h-[44px] font-medium border-2 ${
-                      pendingRoll.result === "yes"
-                        ? "bg-[oklch(0.95_0.02_140)] hover:bg-[oklch(0.98_0.01_140)] border-[oklch(0.65_0.08_140)] text-[oklch(0.35_0.05_140)]"
-                        : "bg-[oklch(0.96_0.02_25)] hover:bg-[oklch(0.98_0.01_25)] border-[oklch(0.70_0.06_25)] text-[oklch(0.40_0.05_25)]"
-                    }`}
-                    disabled={confirmMutation.isPending}
-                  >
-                    ✓ Yes, I did
-                  </Button>
-                  <Button
-                    onClick={() => handleConfirm(false)}
-                    className={`flex-1 md:flex-none min-h-[44px] font-medium border-2 ${
-                      pendingRoll.result === "yes"
-                        ? "bg-[oklch(0.35_0.05_140)]/8 hover:bg-[oklch(0.35_0.05_140)]/15 border-[oklch(0.65_0.06_140)] text-[oklch(0.35_0.05_140)]"
-                        : "bg-[oklch(0.35_0.05_25)]/8 hover:bg-[oklch(0.35_0.05_25)]/15 border-[oklch(0.70_0.06_25)] text-[oklch(0.45_0.05_25)]"
-                    }`}
-                    disabled={confirmMutation.isPending}
-                  >
-                    ✗ No, I didn't
-                  </Button>
+                {/* Follow-through Tracking */}
+                <div className="mt-4 space-y-3">
+                  <p className="text-sm font-medium">
+                    Did you follow this decision?
+                  </p>
+                  <div className="flex gap-2 justify-center">
+                    <Button
+                      onClick={() => handleConfirm(true)}
+                      className={`flex-1 md:flex-none min-h-[44px] font-medium border-2 ${
+                        pendingRoll.result === "yes"
+                          ? "bg-[oklch(0.95_0.02_140)] hover:bg-[oklch(0.98_0.01_140)] border-[oklch(0.65_0.08_140)] text-[oklch(0.35_0.05_140)]"
+                          : "bg-[oklch(0.96_0.02_25)] hover:bg-[oklch(0.98_0.01_25)] border-[oklch(0.70_0.06_25)] text-[oklch(0.40_0.05_25)]"
+                      }`}
+                      disabled={confirmMutation.isPending}
+                    >
+                      ✓ Yes, I did
+                    </Button>
+                    <Button
+                      onClick={() => handleConfirm(false)}
+                      className={`flex-1 md:flex-none min-h-[44px] font-medium border-2 ${
+                        pendingRoll.result === "yes"
+                          ? "bg-[oklch(0.35_0.05_140)]/8 hover:bg-[oklch(0.35_0.05_140)]/15 border-[oklch(0.65_0.06_140)] text-[oklch(0.35_0.05_140)]"
+                          : "bg-[oklch(0.35_0.05_25)]/8 hover:bg-[oklch(0.35_0.05_25)]/15 border-[oklch(0.70_0.06_25)] text-[oklch(0.45_0.05_25)]"
+                      }`}
+                      disabled={confirmMutation.isPending}
+                    >
+                      ✗ No, I didn't
+                    </Button>
+                  </div>
                 </div>
               </div>
-
-              {/* Show if probability was adjusted */}
-              {Math.abs(localProbability - (decision.binary_decision?.probability || 50)) > 0.001 && (
-                <p className="text-xs opacity-75 mt-2">
-                  Probability will update from{" "}
-                  {decision.binary_decision?.probability?.toFixed(decision.binary_decision?.probability_granularity || 0)}% to {localProbability.toFixed(decision.binary_decision?.probability_granularity || 0)}%
-                </p>
-              )}
-            </div>
-          )}
+            ) : (
+              getMultiChoiceResultDisplay()
+            ))}
         </CardHeader>
 
         <CardContent className="space-y-5 px-0">
@@ -582,7 +797,11 @@ export function DecisionCard({
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-2xl md:text-3xl lg:text-4xl font-bold">
-                        {localProbability.toFixed(decision.binary_decision?.probability_granularity || 0)}%
+                        {localProbability.toFixed(
+                          decision.binary_decision?.probability_granularity ||
+                            0,
+                        )}
+                        %
                       </span>
                     </div>
                     <span className="text-xs text-[oklch(0.51_0.077_74.3)]">
@@ -631,13 +850,112 @@ export function DecisionCard({
               </div>
 
               {/* Show if probability has been adjusted but not saved */}
-              {Math.abs(localProbability - (decision.binary_decision?.probability || 50)) > 0.001 && (
+              {Math.abs(
+                localProbability -
+                  (decision.binary_decision?.probability || 50),
+              ) > 0.001 && (
                 <p className="text-xs text-[oklch(0.51_0.077_74.3)] text-center">
-                  Probability adjusted • Will save on next confirmed dice roll
+                  Probability adjusted • Will save on next confirmed roll
                 </p>
               )}
             </div>
           )}
+
+          {/* Choice Section for Multi-choice Decisions */}
+          {decision.type === "multi_choice" &&
+            !pendingRoll &&
+            decision.multi_choice_decision && (
+              <div className="space-y-4">
+                {/* Individual Option Probabilities */}
+                <div className="space-y-3">
+                  {[...decision.multi_choice_decision.choices]
+                    .sort(
+                      (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0),
+                    )
+                    .map((choice) => {
+                      const currentWeight =
+                        localChoiceWeights[choice.id] || choice.weight;
+                      return (
+                        <div
+                          key={choice.id}
+                          className="flex items-center justify-between gap-3 p-3 bg-[oklch(0.89_0.04_83.6)] rounded-lg"
+                        >
+                          <div className="flex items-center gap-3 flex-1">
+                            {isRolling && animationsEnabled
+                              ? getAnimatedDiceIcon()
+                              : getDiceIcon(currentWeight)}
+                            <span className="font-medium">{choice.name}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-lg font-bold min-w-[3rem] text-right">
+                              {typeof currentWeight === "number"
+                                ? currentWeight.toFixed(
+                                    decision.multi_choice_decision
+                                      ?.weight_granularity || 0,
+                                  )
+                                : currentWeight}
+                              %
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  handleChoiceWeightMouseDown(choice.id, -1);
+                                }}
+                                onMouseUp={handleChoiceWeightMouseUp}
+                                onMouseLeave={handleChoiceWeightMouseUp}
+                                onTouchStart={(e) => {
+                                  e.preventDefault();
+                                  handleChoiceWeightMouseDown(choice.id, -1);
+                                }}
+                                onTouchEnd={handleChoiceWeightMouseUp}
+                                size="sm"
+                                className="probability-button text-lg font-bold w-8 h-8 p-0 touch-none select-none"
+                              >
+                                −
+                              </Button>
+                              <Button
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  handleChoiceWeightMouseDown(choice.id, 1);
+                                }}
+                                onMouseUp={handleChoiceWeightMouseUp}
+                                onMouseLeave={handleChoiceWeightMouseUp}
+                                onTouchStart={(e) => {
+                                  e.preventDefault();
+                                  handleChoiceWeightMouseDown(choice.id, 1);
+                                }}
+                                onTouchEnd={handleChoiceWeightMouseUp}
+                                size="sm"
+                                className="probability-button text-lg font-bold w-8 h-8 p-0 touch-none select-none"
+                              >
+                                +
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                {/* Show total and warning if not 100% */}
+                {!multiChoiceWeightsValid && (
+                  <div className="text-sm text-[oklch(0.75_0.12_20)] bg-[oklch(0.75_0.12_20)]/10 px-3 py-2 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <span>
+                        Total:{" "}
+                        {multiChoiceWeightTotal.toFixed(
+                          decision.multi_choice_decision.weight_granularity ||
+                            0,
+                        )}
+                        %
+                      </span>
+                      <span className="font-medium">Must equal 100%</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
           {/* Roll Button with Cooldown */}
           {!pendingRoll && (
@@ -646,10 +964,12 @@ export function DecisionCard({
               disabled={
                 rollMutation.isPending ||
                 isRolling ||
-                (cooldownEndsAt !== null && new Date() < cooldownEndsAt)
+                (cooldownEndsAt !== null && new Date() < cooldownEndsAt) ||
+                (decision.type === "multi_choice" && !multiChoiceWeightsValid)
               }
               className={`w-full text-lg lg:text-xl py-6 lg:py-8 font-bold ${
-                cooldownEndsAt && new Date() < cooldownEndsAt
+                (cooldownEndsAt && new Date() < cooldownEndsAt) ||
+                (decision.type === "multi_choice" && !multiChoiceWeightsValid)
                   ? "opacity-50 cursor-not-allowed bg-[oklch(0.88_0.035_83.6)] hover:bg-[oklch(0.88_0.035_83.6)] text-[oklch(0.51_0.077_74.3)]"
                   : "roll-button"
               } ${isRolling ? "animate-pulse" : ""}`}
@@ -666,13 +986,21 @@ export function DecisionCard({
                 </div>
               ) : isRolling && animationsEnabled ? (
                 <>
-                  {getAnimatedDiceIcon()}
+                  <Dices className="w-7 h-7 mr-2 animate-spin" />
                   <span className="ml-2">Rolling...</span>
+                </>
+              ) : decision.type === "multi_choice" &&
+                !multiChoiceWeightsValid ? (
+                <>
+                  <Dices className="w-7 h-7 mr-2" />
+                  <span>Adjust Weights to 100%</span>
                 </>
               ) : (
                 <>
-                  <Dice1 className="w-5 h-5 mr-2" />
-                  Roll the Dice
+                  <Dices className="w-7 h-7 mr-2" />
+                  {decision.type === "binary"
+                    ? "Roll the Dice"
+                    : "Pick Random Choice"}
                 </>
               )}
             </Button>
@@ -701,99 +1029,206 @@ export function DecisionCard({
 
               <div className="h-32 md:h-36 lg:h-40">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart
-                    data={chartData}
-                    margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="oklch(0.74 0.063 80.8)"
-                      opacity={0.3}
-                    />
-                    <XAxis
-                      dataKey="decision"
-                      stroke="oklch(0.51 0.077 74.3)"
-                      fontSize={10}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      yAxisId="left"
-                      stroke="oklch(0.71 0.097 111.7)"
-                      fontSize={10}
-                      axisLine={false}
-                      tickLine={false}
-                      domain={[0, 100]}
-                      width={30}
-                    />
-                    <YAxis
-                      yAxisId="right"
-                      orientation="right"
-                      stroke="oklch(0.75 0.12 140)"
-                      fontSize={10}
-                      axisLine={false}
-                      tickLine={false}
-                      domain={[0, 100]}
-                      width={30}
-                    />
-                    <RechartsTooltip
-                      contentStyle={{
-                        backgroundColor: "oklch(0.92 0.042 83.6)",
-                        border: "2px solid oklch(0.74 0.063 80.8)",
-                        borderRadius: "0.625rem",
-                        fontSize: "12px",
-                      }}
-                      formatter={(value: number | string, name: string) => [
-                        `${value}%`,
-                        name === "probability"
-                          ? "Target %"
-                          : "Follow-through %",
-                      ]}
-                    />
+                  {decision.type === "binary" ? (
+                    <ComposedChart
+                      data={chartData}
+                      margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="oklch(0.74 0.063 80.8)"
+                        opacity={0.3}
+                      />
+                      <XAxis
+                        dataKey="decision"
+                        stroke="oklch(0.51 0.077 74.3)"
+                        fontSize={10}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        yAxisId="left"
+                        stroke="oklch(0.71 0.097 111.7)"
+                        fontSize={10}
+                        axisLine={false}
+                        tickLine={false}
+                        domain={[0, 100]}
+                        width={30}
+                      />
+                      <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        stroke="oklch(0.75 0.12 140)"
+                        fontSize={10}
+                        axisLine={false}
+                        tickLine={false}
+                        domain={[0, 100]}
+                        width={30}
+                      />
+                      <RechartsTooltip
+                        contentStyle={{
+                          backgroundColor: "oklch(0.92 0.042 83.6)",
+                          border: "2px solid oklch(0.74 0.063 80.8)",
+                          borderRadius: "0.625rem",
+                          fontSize: "12px",
+                        }}
+                        formatter={(value: number | string, name: string) => [
+                          `${value}%`,
+                          name === "probability"
+                            ? "Target %"
+                            : "Follow-through %",
+                        ]}
+                      />
 
-                    <Area
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey="followThrough"
-                      fill="oklch(0.75 0.12 140)"
-                      fillOpacity={0.2}
-                      stroke="oklch(0.75 0.12 140)"
-                      strokeWidth={2}
-                    />
+                      <Area
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="followThrough"
+                        fill="oklch(0.75 0.12 140)"
+                        fillOpacity={0.2}
+                        stroke="oklch(0.75 0.12 140)"
+                        strokeWidth={2}
+                      />
 
-                    <Line
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="probability"
-                      stroke="oklch(0.71 0.097 111.7)"
-                      strokeWidth={3}
-                      dot={{
-                        fill: "oklch(0.71 0.097 111.7)",
-                        strokeWidth: 2,
-                        r: 3,
-                      }}
-                    />
-                  </ComposedChart>
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="probability"
+                        stroke="oklch(0.71 0.097 111.7)"
+                        strokeWidth={3}
+                        dot={{
+                          fill: "oklch(0.71 0.097 111.7)",
+                          strokeWidth: 2,
+                          r: 3,
+                        }}
+                      />
+                    </ComposedChart>
+                  ) : (
+                    // Chart for multi-choice decisions
+                    <LineChart
+                      data={chartData}
+                      margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="oklch(0.74 0.063 80.8)"
+                        opacity={0.3}
+                      />
+                      <XAxis
+                        dataKey="decision"
+                        stroke="oklch(0.51 0.077 74.3)"
+                        fontSize={10}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        stroke="oklch(0.51 0.077 74.3)"
+                        fontSize={10}
+                        axisLine={false}
+                        tickLine={false}
+                        domain={[0, 100]}
+                        width={30}
+                      />
+                      <RechartsTooltip
+                        contentStyle={{
+                          backgroundColor: "oklch(0.92 0.042 83.6)",
+                          border: "2px solid oklch(0.74 0.063 80.8)",
+                          borderRadius: "0.625rem",
+                          fontSize: "12px",
+                        }}
+                        formatter={(value: number, name: string) => {
+                          const granularity =
+                            decision.multi_choice_decision
+                              ?.weight_granularity || 0;
+                          return [
+                            `${(value as number).toFixed(granularity)}%`,
+                            name,
+                          ];
+                        }}
+                      />
+
+                      {/* Create a line for each choice */}
+                      {[...(decision.multi_choice_decision?.choices || [])]
+                        .sort(
+                          (a, b) =>
+                            (a.display_order ?? 0) - (b.display_order ?? 0),
+                        )
+                        .map((choice, index) => {
+                          const colors = [
+                            "oklch(0.71 0.097 111.7)",
+                            "oklch(0.75 0.12 140)",
+                            "oklch(0.75 0.12 20)",
+                            "oklch(0.75 0.12 260)",
+                            "oklch(0.75 0.12 300)",
+                          ];
+                          return (
+                            <Line
+                              key={choice.id}
+                              type="monotone"
+                              dataKey={`weight_${choice.name}`}
+                              name={choice.name}
+                              stroke={colors[index % colors.length]}
+                              strokeWidth={2}
+                              dot={{
+                                fill: colors[index % colors.length],
+                                strokeWidth: 1,
+                                r: 2,
+                              }}
+                            />
+                          );
+                        })}
+                    </LineChart>
+                  )}
                 </ResponsiveContainer>
               </div>
 
               {/* Legend & Stats */}
               <div className="flex justify-between items-center text-xs text-[oklch(0.51_0.077_74.3)]">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1">
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: "oklch(0.71 0.097 111.7)" }}
-                    ></div>
-                    <span>Target</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: "oklch(0.75 0.12 140)" }}
-                    ></div>
-                    <span>Follow-through</span>
-                  </div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {decision.type === "binary" ? (
+                    <>
+                      <div className="flex items-center gap-1">
+                        <div
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: "oklch(0.71 0.097 111.7)" }}
+                        ></div>
+                        <span>Target</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: "oklch(0.75 0.12 140)" }}
+                        ></div>
+                        <span>Follow-through</span>
+                      </div>
+                    </>
+                  ) : (
+                    [...(decision.multi_choice_decision?.choices || [])]
+                      .sort(
+                        (a, b) =>
+                          (a.display_order ?? 0) - (b.display_order ?? 0),
+                      )
+                      .slice(0, 3)
+                      .map((choice, index) => {
+                        const colors = [
+                          "oklch(0.71 0.097 111.7)",
+                          "oklch(0.75 0.12 140)",
+                          "oklch(0.75 0.12 20)",
+                        ];
+                        return (
+                          <div
+                            key={choice.id}
+                            className="flex items-center gap-1"
+                          >
+                            <div
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: colors[index] }}
+                            ></div>
+                            <span>{choice.name}</span>
+                          </div>
+                        );
+                      })
+                  )}
                 </div>
                 <div className="text-right">
                   <span>

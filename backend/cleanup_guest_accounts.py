@@ -6,7 +6,7 @@ Can be run as a cron job or scheduled task.
 import asyncio
 from datetime import datetime, timedelta, timezone
 
-from sqlmodel import select, col
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.db import get_db_session

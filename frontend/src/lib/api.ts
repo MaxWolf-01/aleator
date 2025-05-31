@@ -14,6 +14,7 @@ export type CreateDecisionInput = {
   };
   multi_choice_data?: {
     choices: { name: string; weight: number }[];
+    weight_granularity?: number;
   };
 };
 
@@ -24,7 +25,9 @@ export interface UpdateDecisionInput {
   yes_text?: string;
   no_text?: string;
   cooldown_hours?: number;
-  choices?: { name: string; weight: number }[];
+  choices?: { id: number; weight: number }[];
+  weight_granularity?: number;
+  multi_choice_names?: { id: number; name: string }[];
 }
 
 class ApiClient {
@@ -169,30 +172,41 @@ class ApiClient {
     });
   }
 
-  async updateDecision(id: string, updates: UpdateDecisionInput) {
+  async updateDecision(id: number, updates: UpdateDecisionInput) {
     return this.request(`/api/v1/decisions/${id}/`, {
       method: 'PUT',
       body: JSON.stringify(updates),
     });
   }
 
-  async deleteDecision(id: string) {
+  async deleteDecision(id: number) {
     return this.request(`/api/v1/decisions/${id}/`, {
       method: 'DELETE',
     });
   }
 
-  async rollDecision(id: string) {
+  async rollDecision(
+    id: number, 
+    data?: {
+      probability?: number;
+      choices?: Array<{ id: number; weight: number }>;
+    }
+  ) {
     return this.request(`/api/v1/decisions/${id}/roll/`, {
       method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
     });
   }
 
-  async getPendingRoll(id: string) {
+  async getPendingRoll(id: number) {
     return this.request(`/api/v1/decisions/${id}/pending-roll/`);
   }
 
-  async confirmFollowThrough(decisionId: string, rollId: string, followed: boolean) {
+  async confirmFollowThrough(
+    decisionId: number, 
+    rollId: number, 
+    followed: boolean
+  ) {
     return this.request(`/api/v1/decisions/${decisionId}/rolls/${rollId}/confirm/`, {
       method: 'POST',
       body: JSON.stringify({ followed }),
@@ -204,7 +218,7 @@ class ApiClient {
     return this.request('/api/v1/analytics/overview/');
   }
 
-  async getDecisionAnalytics(id: string) {
+  async getDecisionAnalytics(id: number) {
     return this.request(`/api/v1/analytics/decisions/${id}/`);
   }
 
@@ -213,7 +227,7 @@ class ApiClient {
     return this.request('/api/v1/user/export/');
   }
 
-  async reorderDecisions(orders: Array<{ id: string; order: number }>) {
+  async reorderDecisions(orders: Array<{ id: number; order: number }>) {
     return this.request('/api/v1/decisions/reorder/', {
       method: 'POST',
       body: JSON.stringify({ decision_orders: orders }),

@@ -2,7 +2,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from sqlmodel import select, col
+from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models import (
@@ -13,7 +13,9 @@ from app.models import (
     MultiChoiceDecision,
     ProbabilityHistory,
     Roll,
+    RollChoiceWeight,
     User,
+    WeightHistory,
 )
 from app.schemas import DecisionCreate, DecisionUpdate
 
@@ -66,12 +68,24 @@ async def create_decision(user: User, decision_data: DecisionCreate, session: As
         if total_weight != 100:
             raise ValueError("Choice weights must sum to 100")
 
-        multi_choice = MultiChoiceDecision(decision_id=decision.id)
+        multi_choice = MultiChoiceDecision(
+            decision_id=decision.id, weight_granularity=decision_data.multi_choice_data.weight_granularity
+        )
         session.add(multi_choice)
 
-        for choice_data in decision_data.multi_choice_data.choices:
-            choice = Choice(decision_id=decision.id, name=choice_data.name, weight=choice_data.weight)
+        for idx, choice_data in enumerate(decision_data.multi_choice_data.choices):
+            choice = Choice(
+                decision_id=decision.id,
+                name=choice_data.name,
+                weight=choice_data.weight,
+                display_order=idx,  # Maintain creation order
+            )
             session.add(choice)
+            await session.flush()  # Ensure choice.id is available
+
+            # Add initial weight history entry
+            weight_history = WeightHistory(choice_id=choice.id, weight=choice_data.weight)
+            session.add(weight_history)
 
     await session.commit()
 
@@ -83,8 +97,10 @@ async def create_decision(user: User, decision_data: DecisionCreate, session: As
         .where(Decision.id == decision.id)
         .options(
             selectinload(Decision.binary_decision),
-            selectinload(Decision.multi_choice_decision).selectinload(MultiChoiceDecision.choices),
-            selectinload(Decision.rolls),
+            selectinload(Decision.multi_choice_decision)
+            .selectinload(MultiChoiceDecision.choices)
+            .selectinload(Choice.weight_history),
+            selectinload(Decision.rolls).selectinload(Roll.choice_weights),
             selectinload(Decision.probability_history),
         )
     )
@@ -101,8 +117,10 @@ async def get_user_decisions(user: User, session: AsyncSession) -> list[Decision
         .where(Decision.user_id == user.id)
         .options(
             selectinload(Decision.binary_decision),
-            selectinload(Decision.multi_choice_decision).selectinload(MultiChoiceDecision.choices),
-            selectinload(Decision.rolls),
+            selectinload(Decision.multi_choice_decision)
+            .selectinload(MultiChoiceDecision.choices)
+            .selectinload(Choice.weight_history),
+            selectinload(Decision.rolls).selectinload(Roll.choice_weights),
             selectinload(Decision.probability_history),
         )
         .order_by(col(Decision.display_order).asc(), col(Decision.created_at).desc())
@@ -120,8 +138,10 @@ async def get_decision_by_id(decision_id: int, user: User, session: AsyncSession
         .where(Decision.id == decision_id, Decision.user_id == user.id)
         .options(
             selectinload(Decision.binary_decision),
-            selectinload(Decision.multi_choice_decision).selectinload(MultiChoiceDecision.choices),
-            selectinload(Decision.rolls),
+            selectinload(Decision.multi_choice_decision)
+            .selectinload(MultiChoiceDecision.choices)
+            .selectinload(Choice.weight_history),
+            selectinload(Decision.rolls).selectinload(Roll.choice_weights),
             selectinload(Decision.probability_history),
         )
     )
@@ -166,6 +186,67 @@ async def update_decision(decision: Decision, update_data: DecisionUpdate, sessi
             if update_data.no_text is not None:
                 binary_decision.no_text = update_data.no_text
 
+    # For multi-choice decisions, update choice weights and granularity
+    elif decision.type == DecisionType.MULTI_CHOICE:
+        # Get current multi-choice decision
+        multi_statement = select(MultiChoiceDecision).where(MultiChoiceDecision.decision_id == decision.id)
+        multi_result = await session.exec(multi_statement)
+        multi_choice_decision = multi_result.first()
+
+        if multi_choice_decision:
+            # Update weight granularity if provided
+            if update_data.weight_granularity is not None:
+                multi_choice_decision.weight_granularity = update_data.weight_granularity
+
+        # Update choice weights if provided
+        if update_data.choices is not None:
+            # Validate that all choices sum to 100
+            total_weight = sum(choice.weight for choice in update_data.choices)
+            if abs(total_weight - 100) > 0.01:  # Allow small floating point errors
+                raise ValueError(f"Choice weights must sum to 100, got {total_weight}")
+
+            # Get current choices
+            choices_statement = select(Choice).where(Choice.decision_id == decision.id).order_by(Choice.display_order)
+            choices_result = await session.exec(choices_statement)
+            current_choices = {choice.id: choice for choice in choices_result.all()}
+
+            # Update weights and track history
+            for choice_update in update_data.choices:
+                choice_id = choice_update.id
+                new_weight = choice_update.weight
+
+                if choice_id not in current_choices:
+                    raise ValueError(f"Choice with id {choice_id} not found")
+
+                choice = current_choices[choice_id]
+                if abs(choice.weight - new_weight) > 0.001:  # Only update if changed
+                    choice.weight = new_weight
+
+                    # Record weight change in history
+                    weight_history = WeightHistory(choice_id=choice.id, weight=new_weight)
+                    session.add(weight_history)
+
+        # Update choice names if provided
+        if update_data.multi_choice_names is not None:
+            # Get current choices if not already loaded
+            if update_data.choices is None:
+                choices_statement = (
+                    select(Choice).where(Choice.decision_id == decision.id).order_by(Choice.display_order)
+                )
+                choices_result = await session.exec(choices_statement)
+                current_choices = {choice.id: choice for choice in choices_result.all()}
+
+            # Update names
+            for name_update in update_data.multi_choice_names:
+                choice_id = name_update.id
+                new_name = name_update.name
+
+                if choice_id not in current_choices:
+                    raise ValueError(f"Choice with id {choice_id} not found")
+
+                choice = current_choices[choice_id]
+                choice.name = new_name
+
     await session.commit()
 
     # Reload with relationships
@@ -176,8 +257,10 @@ async def update_decision(decision: Decision, update_data: DecisionUpdate, sessi
         .where(Decision.id == decision.id)
         .options(
             selectinload(Decision.binary_decision),
-            selectinload(Decision.multi_choice_decision).selectinload(MultiChoiceDecision.choices),
-            selectinload(Decision.rolls),
+            selectinload(Decision.multi_choice_decision)
+            .selectinload(MultiChoiceDecision.choices)
+            .selectinload(Choice.weight_history),
+            selectinload(Decision.rolls).selectinload(Roll.choice_weights),
             selectinload(Decision.probability_history),
         )
     )
@@ -217,8 +300,10 @@ def roll_multi_choice_decision(choices: list[Choice]) -> str:
     return choices[-1].name
 
 
-async def roll_decision(decision: Decision, session: AsyncSession) -> Roll:
+async def roll_decision(decision: Decision, session: AsyncSession, roll_request=None) -> Roll:
     """Roll a decision and create a roll record."""
+    from app.schemas import RollRequest
+
     if decision.type == DecisionType.BINARY:
         # Get binary decision data
         binary_statement = select(BinaryDecision).where(BinaryDecision.decision_id == decision.id)
@@ -228,34 +313,150 @@ async def roll_decision(decision: Decision, session: AsyncSession) -> Roll:
         if not binary_decision:
             raise ValueError("Binary decision data not found")
 
-        result = roll_binary_decision(binary_decision.probability)
+        # Use provided probability or default to current
+        probability = (
+            roll_request.probability
+            if roll_request and roll_request.probability is not None
+            else binary_decision.probability
+        )
+        result = roll_binary_decision(probability)
+
+        # Create roll record with the probability used
+        roll = Roll(decision_id=decision.id, result=result, probability=probability)
 
     elif decision.type == DecisionType.MULTI_CHOICE:
-        # Get choices
-        choices_statement = select(Choice).where(Choice.decision_id == decision.id)
+        # Get choices ordered by display_order
+        choices_statement = select(Choice).where(Choice.decision_id == decision.id).order_by(Choice.display_order)
         choices_result = await session.exec(choices_statement)
         choices = list(choices_result.all())
 
         if not choices:
             raise ValueError("No choices found for multi-choice decision")
 
-        result = roll_multi_choice_decision(choices)
+        # If weights are provided in request, create a temporary list with updated weights
+        if roll_request and roll_request.choices:
+            # Create a map of choice id to weight from request
+            weight_updates = {update.id: update.weight for update in roll_request.choices}
+
+            # Validate we have updates for all choices
+            if set(weight_updates.keys()) != {choice.id for choice in choices}:
+                raise ValueError("Must provide weights for all choices")
+
+            # Get the weight granularity to determine acceptable precision
+            mc_statement = select(MultiChoiceDecision).where(MultiChoiceDecision.decision_id == decision.id)
+            mc_result = await session.exec(mc_statement)
+            multi_choice = mc_result.first()
+
+            # Determine acceptable tolerance based on granularity
+            tolerance = 0.001  # Default tight tolerance
+            if multi_choice:
+                if multi_choice.weight_granularity == 0:  # Whole numbers
+                    tolerance = 0.001
+                elif multi_choice.weight_granularity == 1:  # 0.1 precision
+                    tolerance = 0.01
+                elif multi_choice.weight_granularity == 2:  # 0.01 precision
+                    tolerance = 0.001
+
+            # Validate weights sum to 100 within tolerance
+            total_weight = sum(weight_updates.values())
+            if abs(total_weight - 100) > tolerance:
+                raise ValueError(f"Weights must sum to 100, got {total_weight}")
+
+            # Create temporary choice objects with updated weights for rolling
+            from copy import copy
+
+            roll_choices = []
+            for choice in choices:
+                temp_choice = copy(choice)
+                temp_choice.weight = weight_updates[choice.id]
+                roll_choices.append(temp_choice)
+        else:
+            roll_choices = choices
+
+        result = roll_multi_choice_decision(roll_choices)
+
+        # Create roll record
+        roll = Roll(decision_id=decision.id, result=result)
+        session.add(roll)
+        await session.flush()  # Get the roll ID before creating weight records
+
+        # Create weight records for each choice with the weights used for rolling
+        for choice in roll_choices:
+            from app.models import RollChoiceWeight
+
+            weight_record = RollChoiceWeight(
+                roll_id=roll.id,
+                choice_id=choice.id,
+                choice_name=choice.name,  # Store name directly
+                weight=choice.weight,
+            )
+            session.add(weight_record)
 
     else:
         raise ValueError(f"Unknown decision type: {decision.type}")
 
-    # Create roll record
-    roll = Roll(decision_id=decision.id, result=result)
-    session.add(roll)
+    if decision.type == DecisionType.BINARY:
+        session.add(roll)
+
     await session.commit()
-    await session.refresh(roll)
+
+    # Reload roll with relationships
+    from sqlalchemy.orm import selectinload
+
+    statement = select(Roll).where(Roll.id == roll.id).options(selectinload(Roll.choice_weights))
+    result = await session.exec(statement)
+    roll = result.first()
 
     return roll
 
 
-async def confirm_roll(roll: Roll, followed: bool, session: AsyncSession) -> Roll:
+async def confirm_roll(
+    roll: Roll,
+    followed: bool,
+    session: AsyncSession,
+) -> Roll:
     """Confirm whether the user followed through on a roll."""
+    if roll.followed is not None:
+        raise ValueError("Roll already confirmed")
+
     roll.followed = followed
+
+    # Get the decision to update the actual weights/probability if user followed through
+    decision_statement = select(Decision).where(Decision.id == roll.decision_id)
+    decision_result = await session.exec(decision_statement)
+    decision = decision_result.first()
+
+    if not decision:
+        raise ValueError("Decision not found")
+
+    # If user followed through, update the decision's weights to match what was used
+    if followed:
+        if decision.type == DecisionType.BINARY and roll.probability is not None:
+            # Update the binary decision's probability to match what was rolled
+            binary_statement = select(BinaryDecision).where(BinaryDecision.decision_id == decision.id)
+            binary_result = await session.exec(binary_statement)
+            binary_decision = binary_result.first()
+
+            if binary_decision:
+                binary_decision.probability = roll.probability
+
+        elif decision.type == DecisionType.MULTI_CHOICE:
+            # Update the choices' weights to match what was rolled
+            # First, get the weights from RollChoiceWeight
+            weight_statement = select(RollChoiceWeight).where(RollChoiceWeight.roll_id == roll.id)
+            weight_result = await session.exec(weight_statement)
+            roll_weights = {rw.choice_id: rw.weight for rw in weight_result.all()}
+
+            if roll_weights:
+                # Update each choice's weight
+                choices_statement = (
+                    select(Choice).where(Choice.decision_id == decision.id).order_by(Choice.display_order)
+                )
+                choices_result = await session.exec(choices_statement)
+                for choice in choices_result.all():
+                    if choice.id in roll_weights:
+                        choice.weight = roll_weights[choice.id]
+
     await session.commit()
     await session.refresh(roll)
     return roll
