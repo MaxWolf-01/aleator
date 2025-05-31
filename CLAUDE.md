@@ -52,7 +52,6 @@
   important-instruction-reminders
   Do what has been asked; nothing more, nothing less.
   NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
-  CRITICAL: NEVER EVER commit the external-docs directory to the repository!!! Before ANY commit, check that external-docs is NOT included. It is meant for local reference only and cannot be gitignored (because you wouldn't be able to see it without tool-use / I cant @mention it).
   CI TESTS can be run locally with the comman `act`, to test the github actions locally.
   USE THE Makefile TO YOUR ADVANTAGE: Read it to get familiar with the common flows, quickly issue commands, ...
 
@@ -109,7 +108,6 @@
 - Include preferences, style decisions, debugging solutions, and library gotchas
 
 ## Critical Design Decisions
-- **Probability updates are NOT saved immediately**: Only save probability when user confirms follow-through
 - **Follow-through terminology**: Use "follow-through" everywhere, never "compliance"
 - **Chart synchronization**: Probability and follow-through must be in sync - saving happens together
 - **API endpoints need trailing slashes**: FastAPI redirects without them, causing issues
