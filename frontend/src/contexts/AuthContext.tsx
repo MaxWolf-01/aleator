@@ -33,7 +33,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentUser);
       } catch {
         // User not authenticated or token expired
-        console.log('Auth check failed, creating guest session');
         
         // Clear the invalid token
         apiClient.clearAuthToken();
@@ -41,11 +40,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Create a new guest session
         try {
           const { guest_token } = await apiClient.createGuestSession();
-          console.log('Guest token created:', guest_token ? 'yes' : 'no');
           apiClient.setAuthToken(guest_token);
           
           const guestUser = await apiClient.getCurrentUser();
-          console.log('Guest user:', guestUser);
           setUser(guestUser);
         } catch (guestError) {
           console.error('Failed to create guest session:', guestError);
