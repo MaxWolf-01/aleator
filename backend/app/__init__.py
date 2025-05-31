@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
-from app.api.v1 import auth, decisions
+from app.api.v1 import auth, decisions, user
 from app.db import prepare_database_startup
 from app.settings import get_settings
 
@@ -39,6 +39,7 @@ def create_app() -> FastAPI:
 
     app.include_router(auth.router, prefix="/api/v1")
     app.include_router(decisions.router, prefix="/api/v1")
+    app.include_router(user.router, prefix="/api/v1")
 
     @app.get("/api/health")
     async def health_check():

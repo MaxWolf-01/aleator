@@ -100,6 +100,18 @@ export function AccountDropdown() {
         
         <DropdownMenuSeparator className="bg-[oklch(0.74_0.063_80.8)]" />
         
+        {/* Export - Available for all users */}
+        <DropdownMenuItem 
+          onClick={handleExport}
+          disabled={isExporting}
+          className="cursor-pointer hover:bg-[oklch(0.88_0.035_83.6)] focus:bg-[oklch(0.88_0.035_83.6)] focus:text-[oklch(0.29_0.086_109)] transition-colors rounded-md"
+        >
+          <Download className="h-4 w-4" />
+          <span>{isExporting ? "Exporting..." : "Export Data"}</span>
+        </DropdownMenuItem>
+        
+        <DropdownMenuSeparator className="bg-[oklch(0.74_0.063_80.8)]" />
+        
         {isGuest ? (
           <>
             <DropdownMenuItem 
@@ -126,15 +138,6 @@ export function AccountDropdown() {
           </>
         ) : (
           <>
-            <DropdownMenuItem 
-              onClick={handleExport}
-              disabled={isExporting}
-              className="cursor-pointer hover:bg-[oklch(0.88_0.035_83.6)] focus:bg-[oklch(0.88_0.035_83.6)] focus:text-[oklch(0.29_0.086_109)] transition-colors rounded-md"
-            >
-              <Download className="h-4 w-4" />
-              <span>{isExporting ? "Exporting..." : "Export Data"}</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-[oklch(0.74_0.063_80.8)]" />
             <DropdownMenuItem 
               onClick={handleSignOut}
               className="cursor-pointer hover:bg-[oklch(0.54_0.19_29.2)]/10 focus:bg-[oklch(0.54_0.19_29.2)]/10 focus:text-[oklch(0.54_0.19_29.2)] text-[oklch(0.54_0.19_29.2)] transition-colors rounded-md"
