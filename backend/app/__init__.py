@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from app.api.v1 import auth, decisions
 from app.db import prepare_database_startup
@@ -25,6 +26,9 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # Add ProxyHeaders middleware first to handle X-Forwarded-* headers
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
@@ -36,7 +40,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router, prefix="/api/v1")
     app.include_router(decisions.router, prefix="/api/v1")
 
-    @app.get("/health")
+    @app.get("/api/health")
     async def health_check():
         return {"status": "ok", "service": "aleator"}
 

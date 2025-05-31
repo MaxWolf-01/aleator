@@ -38,8 +38,8 @@ Make these changes:
 - `POSTGRES_PASSWORD`: Set a strong password (e.g., generate with `openssl rand -base64 32`)
 - `JWT_SECRET_KEY`: Set a different strong secret (e.g., generate with `openssl rand -base64 32`)
 - `DATABASE_URL`: Replace `your_password_here` with your POSTGRES_PASSWORD
-- `CORS_ORIGINS`: Change to `["https://aleatoric.agency"]`
-- `VITE_API_BASE_URL`: Set to `https://aleatoric.agency/api`
+- `CORS_ORIGINS`: Change to `["https://aleatoric.agency", "https://www.aleatoric.agency"]`
+- `VITE_API_BASE_URL`: Set to `https://www.aleatoric.agency`
 
 ## Step 3: Build and Start Services
 
@@ -59,21 +59,20 @@ vim /etc/nginx/sites-available/aleator
 ```
 
 Add this content:
+
 ```nginx
 server {
-    listen 80;
     server_name aleatoric.agency www.aleatoric.agency;
-
-    # API proxy
+    
     location /api/ {
-        proxy_pass http://localhost:8000/;
+        # IMPORTANT: No trailing slash on proxy_pass to preserve the full path
+        proxy_pass http://localhost:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
-
-    # Frontend proxy
+    
     location / {
         proxy_pass http://localhost:3000;
         proxy_set_header Host $host;
@@ -81,6 +80,22 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/aleatoric.agency/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/aleatoric.agency/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+}
+server {
+    if ($host = www.aleatoric.agency) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+    if ($host = aleatoric.agency) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+    listen 80;
+    server_name aleatoric.agency www.aleatoric.agency;
+    return 404; # managed by Certbot
 }
 ```
 
@@ -116,7 +131,7 @@ ufw --force enable
 ## Step 7: Final Checks
 
 ```bash
-curl https://aleatoric.agency/api/health
+curl https://www.aleatoric.agency/api/health
 
 docker-compose logs -f
 ```
@@ -182,4 +197,3 @@ cd /opt/aleator
 docker-compose down -v  # Warning: deletes database!
 docker-compose up -d
 ```
-

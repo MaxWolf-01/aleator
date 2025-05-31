@@ -98,6 +98,7 @@ export function DecisionCard({
       });
       setLocalChoiceWeights(weights);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [decision.id]); // Only depend on decision ID, not the whole object
 
   // Check for pending roll in existing rolls data and calculate cooldown
@@ -144,6 +145,7 @@ export function DecisionCard({
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [decision.id, decision.cooldown_hours, decision.rolls]);
 
   // Dice roll animation effect
@@ -176,7 +178,10 @@ export function DecisionCard({
   const rollMutation = useMutation<Roll, Error, void>({
     mutationFn: () => {
       // Prepare roll data with current weights/probability
-      const rollData: any = {};
+      const rollData: {
+        probability?: number;
+        choices?: Array<{ id: number; weight: number }>;
+      } = {};
 
       if (decision.type === "binary") {
         const probabilityChanged =
