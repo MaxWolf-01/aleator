@@ -113,7 +113,7 @@ export function DashboardPage() {
                 <Dice1 className="w-16 h-16 text-[oklch(0.71_0.097_111.7)] mx-auto mb-4 opacity-50" />
                 <h3 className="text-xl font-bold mb-2">No decisions yet</h3>
                 <p className="text-[oklch(0.51_0.077_74.3)] mb-6">
-                  Create your first decision to start making choices with mindful randomness.
+                  Create a decision to get started.
                 </p>
                 <Button 
                   onClick={() => setShowCreateDialog(true)}

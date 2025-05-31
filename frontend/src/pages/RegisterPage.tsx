@@ -98,7 +98,7 @@ export function RegisterPage() {
             <h1 className="text-3xl font-bold text-[oklch(0.29_0.086_109)]">Aleator</h1>
           </div>
           <p className="text-[oklch(0.51_0.077_74.3)]">
-            Join the journey of mindful decision-making
+            Ready to give randomness a meaning?
           </p>
         </div>
 
@@ -242,8 +242,8 @@ export function RegisterPage() {
                       try {
                         await createGuestSession();
                         navigate('/');
-                      } catch (error) {
-                        console.error('Failed to create guest session:', error);
+                      } catch {
+                        // Guest session creation failed - user stays on register page
                       }
                     }}
                   >
