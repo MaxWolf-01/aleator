@@ -13,7 +13,7 @@ RUN bun install --frozen-lockfile
 COPY . .
 
 # Accept build argument for API URL
-ARG VITE_API_BASE_URL=https://api.aleatoric.agency
+ARG VITE_API_BASE_URL
 
 # Build the application with environment variable
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
