@@ -88,7 +88,7 @@ export function DashboardPage() {
             </div>
           </div>
           <p className="text-[oklch(0.51_0.077_78.9)] text-base md:text-lg">
-            Make moderation easier with mindful randomness
+            Monte Carlo Meta-Agency
           </p>
         </div>
 

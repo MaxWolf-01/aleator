@@ -678,7 +678,7 @@ export function DecisionCard({
   return (
     <Card className="matsu-card relative overflow-hidden py-0">
       {/* Edit/Delete/Reorder buttons - absolute positioned */}
-      <div className="absolute top-3 right-3 lg:top-4 lg:right-4 z-20 flex items-center gap-1">
+      <div className="absolute bottom-3 right-3 lg:bottom-4 lg:right-4 z-20 flex items-center gap-1">
         {/* Reorder buttons */}
         <button
           onClick={() => onReorder(decision.id, "up")}
@@ -714,11 +714,11 @@ export function DecisionCard({
         </button>
       </div>
 
-      <div className="relative z-10 p-6">
+      <div className="relative z-10 p-6 pb-16">
         <CardHeader className="p-0 pb-3">
-          <div className="pr-32 lg:pr-40">
+          <div>
             <CardTitle
-              className={`font-semibold break-all leading-tight ${
+              className={`font-semibold break-words leading-tight ${
                 decision.title.length > 50
                   ? "text-base md:text-lg"
                   : decision.title.length > 35
@@ -997,18 +997,18 @@ export function DecisionCard({
                 </div>
               ) : isRolling && animationsEnabled ? (
                 <>
-                  <Dices className="w-7 h-7 mr-2 animate-spin" />
+                  <Dices className="size-8 mr-2 animate-spin" />
                   <span className="ml-2">Rolling...</span>
                 </>
               ) : decision.type === "multi_choice" &&
                 !multiChoiceWeightsValid ? (
                 <>
-                  <Dices className="w-7 h-7 mr-2" />
+                  <Dices className="size-8 mr-2" />
                   <span>Adjust Weights to 100%</span>
                 </>
               ) : (
                 <>
-                  <Dices className="w-7 h-7 mr-2" />
+                  <Dices className="size-8 mr-2" />
                   {decision.type === "binary"
                     ? "Roll the Dice"
                     : "Pick Random Choice"}

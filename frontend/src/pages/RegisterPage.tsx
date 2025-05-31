@@ -38,6 +38,7 @@ export function RegisterPage() {
     formState: { errors },
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
+    mode: 'onBlur',
   });
 
   if (isAuthenticated && !isGuest) {
@@ -137,6 +138,7 @@ export function RegisterPage() {
                   id="email"
                   type="email"
                   placeholder="Enter your email"
+                  aria-invalid={!!errors.email}
                   {...register('email')}
                   className={errors.email ? 'border-[oklch(0.54_0.19_29.2)]' : 'border-[oklch(0.74_0.063_80.8)] focus:border-[oklch(0.71_0.097_111.7)]'}
                 />
