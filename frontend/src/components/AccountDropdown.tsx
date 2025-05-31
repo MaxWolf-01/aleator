@@ -41,8 +41,8 @@ export function AccountDropdown() {
       a.download = `aleator-data-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Export failed:", error);
+    } catch {
+      // Error silently handled - user will see export didn't download
     } finally {
       setIsExporting(false);
     }

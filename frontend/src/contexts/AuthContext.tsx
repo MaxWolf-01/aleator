@@ -44,8 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           const guestUser = await apiClient.getCurrentUser();
           setUser(guestUser);
-        } catch (guestError) {
-          console.error('Failed to create guest session:', guestError);
+        } catch {
           // Keep user as null, app will handle unauthenticated state
         }
       } finally {
@@ -94,8 +93,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           const guestUser = await apiClient.getCurrentUser();
           setUser(guestUser);
-        } catch (error) {
-          console.error('Failed to create new guest session:', error);
+        } catch {
+          // Failed to create guest session - continue without it
         }
       }
     }

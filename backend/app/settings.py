@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 30
 
+    # Proxy settings
+    trusted_hosts: list[str] = ["127.0.0.1"]
+
     model_config = SettingsConfigDict(
         env_prefix="",
         env_file=".env",

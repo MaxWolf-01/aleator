@@ -25,6 +25,14 @@ async def create_decision(user: User, decision_data: DecisionCreate, session: As
     # Get max display_order for user's decisions
     from sqlmodel import func
 
+    # Check user's decision count limit
+    count_statement = select(func.count(Decision.id)).where(Decision.user_id == user.id)
+    count_result = await session.exec(count_statement)
+    decision_count = count_result.first() or 0
+
+    if decision_count >= 100:
+        raise ValueError("Maximum of 100 decisions allowed per user")
+
     max_order_statement = select(func.max(Decision.display_order)).where(Decision.user_id == user.id)
     max_order_result = await session.exec(max_order_statement)
     max_order = max_order_result.first() or 0
@@ -302,7 +310,17 @@ def roll_multi_choice_decision(choices: list[Choice]) -> str:
 
 async def roll_decision(decision: Decision, session: AsyncSession, roll_request=None) -> Roll:
     """Roll a decision and create a roll record."""
+    from sqlmodel import func
+
     from app.schemas import RollRequest
+
+    # Check user's total roll count limit
+    roll_count_statement = select(func.count(Roll.id)).join(Decision).where(Decision.user_id == decision.user_id)
+    roll_count_result = await session.exec(roll_count_statement)
+    roll_count = roll_count_result.first() or 0
+
+    if roll_count >= 1_000_000:
+        raise ValueError("Maximum of 1 million rolls allowed per user")
 
     if decision.type == DecisionType.BINARY:
         # Get binary decision data

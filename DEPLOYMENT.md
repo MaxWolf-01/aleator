@@ -40,6 +40,7 @@ Make these changes:
 - `DATABASE_URL`: Replace `your_password_here` with your POSTGRES_PASSWORD
 - `CORS_ORIGINS`: Change to `["https://aleatoric.agency", "https://www.aleatoric.agency"]`
 - `VITE_API_BASE_URL`: Set to `https://www.aleatoric.agency`
+- `TRUSTED_HOSTS`: Set to your VPS IP address (e.g., `["123.45.67.89"]`)
 
 ## Step 3: Build and Start Services
 

@@ -27,7 +27,7 @@ def create_app() -> FastAPI:
     )
 
     # Add ProxyHeaders middleware first to handle X-Forwarded-* headers
-    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=settings.trusted_hosts)
 
     app.add_middleware(
         CORSMiddleware,

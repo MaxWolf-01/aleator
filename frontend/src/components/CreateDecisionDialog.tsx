@@ -152,8 +152,8 @@ export function CreateDecisionDialog({
       onSuccess();
       onOpenChange(false);
     },
-    onError: (error) => {
-      console.error("Failed to create decision:", error);
+    onError: () => {
+      // Error is handled by React Query - will show in UI
     },
   });
 
