@@ -61,12 +61,12 @@ export function LoginPage() {
   };
 
   return (
-    <div className="matsu-app min-h-screen flex items-center justify-center p-4">
+    <div className="matsu-app min-h-screen flex flex-col sm:justify-center p-4 pt-8 sm:pt-4">
       <div className="texture"></div>
-      <div className="relative z-10 w-full max-w-md space-y-6">
+      <div className="relative z-10 w-full max-w-md mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
+          <div className="flex items-center justify-center gap-3 mb-2 sm:mb-4">
             <Dice1 className="w-8 h-8 text-[oklch(0.71_0.097_111.7)]" />
             <h1 className="text-3xl font-bold text-[oklch(0.29_0.086_109)]">Aleator</h1>
           </div>
