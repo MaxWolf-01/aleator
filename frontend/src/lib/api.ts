@@ -120,7 +120,7 @@ class ApiClient {
     params.append('username', credentials.email);
     params.append('password', credentials.password);
 
-    return this.request<AuthTokens>('/api/v1/auth/login/', {
+    return this.request<AuthTokens>('/api/v1/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -130,31 +130,31 @@ class ApiClient {
   }
 
   async register(credentials: RegisterCredentials): Promise<User> {
-    return this.request<User>('/api/v1/auth/register/', {
+    return this.request<User>('/api/v1/auth/register', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
   }
 
   async getCurrentUser(): Promise<User> {
-    return this.request<User>('/api/v1/auth/me/');
+    return this.request<User>('/api/v1/auth/me');
   }
 
   async createGuestSession(): Promise<{ guest_token: string }> {
-    return this.request<{ guest_token: string }>('/api/v1/auth/guest/', {
+    return this.request<{ guest_token: string }>('/api/v1/auth/guest', {
       method: 'POST',
     });
   }
 
   async convertGuestToUser(email: string, password: string): Promise<AuthTokens> {
-    return this.request<AuthTokens>('/api/v1/auth/convert/', {
+    return this.request<AuthTokens>('/api/v1/auth/convert', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
   }
 
   async logout(): Promise<void> {
-    await this.request<void>('/api/v1/auth/logout/', {
+    await this.request<void>('/api/v1/auth/logout', {
       method: 'POST',
     });
     this.clearAuthToken();
@@ -162,25 +162,25 @@ class ApiClient {
 
   // Decision endpoints
   async getDecisions() {
-    return this.request('/api/v1/decisions/');
+    return this.request('/api/v1/decisions');
   }
 
   async createDecision(decision: CreateDecisionInput) {
-    return this.request('/api/v1/decisions/', {
+    return this.request('/api/v1/decisions', {
       method: 'POST',
       body: JSON.stringify(decision),
     });
   }
 
   async updateDecision(id: number, updates: UpdateDecisionInput) {
-    return this.request(`/api/v1/decisions/${id}/`, {
+    return this.request(`/api/v1/decisions/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
     });
   }
 
   async deleteDecision(id: number) {
-    return this.request(`/api/v1/decisions/${id}/`, {
+    return this.request(`/api/v1/decisions/${id}`, {
       method: 'DELETE',
     });
   }
@@ -192,14 +192,14 @@ class ApiClient {
       choices?: Array<{ id: number; weight: number }>;
     }
   ) {
-    return this.request(`/api/v1/decisions/${id}/roll/`, {
+    return this.request(`/api/v1/decisions/${id}/roll`, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
     });
   }
 
   async getPendingRoll(id: number) {
-    return this.request(`/api/v1/decisions/${id}/pending-roll/`);
+    return this.request(`/api/v1/decisions/${id}/pending-roll`);
   }
 
   async confirmFollowThrough(
@@ -207,7 +207,7 @@ class ApiClient {
     rollId: number, 
     followed: boolean
   ) {
-    return this.request(`/api/v1/decisions/${decisionId}/rolls/${rollId}/confirm/`, {
+    return this.request(`/api/v1/decisions/${decisionId}/rolls/${rollId}/confirm`, {
       method: 'POST',
       body: JSON.stringify({ followed }),
     });
@@ -215,20 +215,20 @@ class ApiClient {
 
   // Analytics endpoints
   async getAnalyticsOverview() {
-    return this.request('/api/v1/analytics/overview/');
+    return this.request('/api/v1/analytics/overview');
   }
 
   async getDecisionAnalytics(id: number) {
-    return this.request(`/api/v1/analytics/decisions/${id}/`);
+    return this.request(`/api/v1/analytics/decisions/${id}`);
   }
 
   // User endpoints
   async exportData() {
-    return this.request('/api/v1/user/export/');
+    return this.request('/api/v1/user/export');
   }
 
   async reorderDecisions(orders: Array<{ id: number; order: number }>) {
-    return this.request('/api/v1/decisions/reorder/', {
+    return this.request('/api/v1/decisions/reorder', {
       method: 'POST',
       body: JSON.stringify({ decision_orders: orders }),
     });
