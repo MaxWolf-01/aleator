@@ -63,10 +63,12 @@ export function CreateDecisionDialog({
     { name: "Option 2", weight: 35 },
     { name: "Option 3", weight: 25 },
   ]);
-  const [choiceInputValues, setChoiceInputValues] = useState<Record<number, string>>({
+  const [choiceInputValues, setChoiceInputValues] = useState<
+    Record<number, string>
+  >({
     0: "40",
-    1: "35", 
-    2: "25"
+    1: "35",
+    2: "25",
   });
 
   const {
@@ -145,7 +147,7 @@ export function CreateDecisionDialog({
       setChoiceInputValues({
         0: "40",
         1: "35",
-        2: "25"
+        2: "25",
       });
       onSuccess();
       onOpenChange(false);
@@ -167,9 +169,9 @@ export function CreateDecisionDialog({
       weight: newWeight,
     });
     setChoices(newChoices);
-    setChoiceInputValues(prev => ({
+    setChoiceInputValues((prev) => ({
       ...prev,
-      [newChoices.length - 1]: newWeight.toFixed(parseInt(weightGranularity))
+      [newChoices.length - 1]: newWeight.toFixed(parseInt(weightGranularity)),
     }));
   };
 
@@ -178,13 +180,15 @@ export function CreateDecisionDialog({
 
     const newChoices = choices.filter((_, i) => i !== index);
     setChoices(newChoices);
-    
+
     // Update input values, removing the deleted index and shifting others down
     const newInputValues: Record<number, string> = {};
     let oldIndex = 0;
     for (let i = 0; i < choices.length; i++) {
       if (i !== index) {
-        newInputValues[oldIndex] = choiceInputValues[i] || choices[i].weight.toFixed(parseInt(weightGranularity));
+        newInputValues[oldIndex] =
+          choiceInputValues[i] ||
+          choices[i].weight.toFixed(parseInt(weightGranularity));
         oldIndex++;
       }
     }
@@ -207,6 +211,7 @@ export function CreateDecisionDialog({
     return (
       choices.length >= 2 &&
       choices.every((c) => c.name.trim().length > 0) &&
+      choices.every((c) => c.weight >= 0.01) &&
       choices.reduce((sum, c) => sum + c.weight, 0) === 100
     );
   };
@@ -238,7 +243,9 @@ export function CreateDecisionDialog({
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               {createMutation.isError && (
                 <div className="p-3 rounded-lg bg-[oklch(0.54_0.19_29.2)]/10 text-[oklch(0.54_0.19_29.2)] border border-[oklch(0.54_0.19_29.2)]/20 text-sm">
-                  Failed to create decision. Please try again.
+                  {createMutation.error?.message?.includes("should be greater than or equal to 0.01")
+                    ? "All weights must be at least 0.01%. Please adjust your weights."
+                    : "Failed to create decision. Please try again."}
                 </div>
               )}
 
@@ -438,20 +445,33 @@ export function CreateDecisionDialog({
                             <Input
                               type="text"
                               inputMode="decimal"
+                              min="0.01"
+                              max="100"
                               value={choiceInputValues[index] || ""}
                               onChange={(e) => {
                                 const value = e.target.value;
                                 // Allow typing numbers and decimals
                                 if (/^\d*\.?\d*$/.test(value) || value === "") {
-                                  setChoiceInputValues(prev => ({
+                                  setChoiceInputValues((prev) => ({
                                     ...prev,
-                                    [index]: value
+                                    [index]: value,
                                   }));
-                                  
-                                  // Update the actual weight
+
+                                  // Update the actual weight only if it's a valid number
                                   const numValue = parseFloat(value);
-                                  if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                                  if (
+                                    !isNaN(numValue) &&
+                                    numValue >= 0.01 &&
+                                    numValue <= 100
+                                  ) {
                                     updateChoiceWeight(index, numValue);
+                                  } else if (
+                                    value === "" ||
+                                    value === "0" ||
+                                    value === "0."
+                                  ) {
+                                    // Allow typing intermediate values but set weight to minimum
+                                    updateChoiceWeight(index, 0.01);
                                   }
                                 }
                               }}
@@ -466,16 +486,20 @@ export function CreateDecisionDialog({
                                       : 0.01;
                                 const rounded = Math.round(value / step) * step;
                                 const maxWeight = 100; // Allow any value up to 100
+                                // Enforce minimum weight of 0.01
+                                const minWeight = 0.01;
                                 const clamped = Math.max(
-                                  0,
+                                  minWeight,
                                   Math.min(maxWeight, rounded),
                                 );
-                                
+
                                 // Update weight and format display
                                 updateChoiceWeight(index, clamped);
-                                setChoiceInputValues(prev => ({
+                                setChoiceInputValues((prev) => ({
                                   ...prev,
-                                  [index]: clamped.toFixed(parseInt(weightGranularity))
+                                  [index]: clamped.toFixed(
+                                    parseInt(weightGranularity),
+                                  ),
                                 }));
                               }}
                               className="w-20 text-center border-2 border-[oklch(0.74_0.063_80.8)] bg-[oklch(0.96_0.025_83.6)] focus:border-[oklch(0.71_0.097_111.7)]"
@@ -511,18 +535,33 @@ export function CreateDecisionDialog({
                       </div>
                     </div>
                     {(() => {
-                      const total = choices.reduce((sum, c) => sum + c.weight, 0);
-                      const hasEmptyNames = choices.some(c => c.name.trim().length === 0);
+                      const total = choices.reduce(
+                        (sum, c) => sum + c.weight,
+                        0,
+                      );
+                      const hasEmptyNames = choices.some(
+                        (c) => c.name.trim().length === 0,
+                      );
+                      const hasZeroWeights = choices.some(
+                        (c) => c.weight < 0.01,
+                      );
                       return (
                         <>
                           {total !== 100 && (
                             <p className="text-xs text-[oklch(0.61_0.077_74.3)]">
-                              Current total: {total.toFixed(parseInt(weightGranularity))}% (must equal 100%)
+                              Current total:{" "}
+                              {total.toFixed(parseInt(weightGranularity))}%
+                              (must equal 100%)
                             </p>
                           )}
                           {hasEmptyNames && (
                             <p className="text-xs text-[oklch(0.75_0.12_20)]">
                               All options must have names
+                            </p>
+                          )}
+                          {hasZeroWeights && (
+                            <p className="text-xs text-[oklch(0.75_0.12_20)]">
+                              All weights must be at least 0.01%
                             </p>
                           )}
                         </>
@@ -543,7 +582,9 @@ export function CreateDecisionDialog({
                           // Update input values to match new precision
                           const newInputValues: Record<number, string> = {};
                           choices.forEach((choice, index) => {
-                            newInputValues[index] = choice.weight.toFixed(parseInt(value));
+                            newInputValues[index] = choice.weight.toFixed(
+                              parseInt(value),
+                            );
                           });
                           setChoiceInputValues(newInputValues);
                         }
@@ -674,4 +715,3 @@ export function CreateDecisionDialog({
     </div>
   );
 }
-
