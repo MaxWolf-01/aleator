@@ -8,6 +8,7 @@ import { Plus, Dice1 } from 'lucide-react';
 import { DecisionCard } from '@/components/DecisionCard';
 import { CreateDecisionDialog } from '@/components/CreateDecisionDialog';
 import { AccountDropdown } from '@/components/AccountDropdown';
+import { AboutButton } from '@/components/AboutButton';
 
 export function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -74,6 +75,7 @@ export function DashboardPage() {
               <h1 className="text-2xl md:text-3xl font-bold">Aleator</h1>
             </div>
             <div className="flex items-center gap-2">
+              <AboutButton />
               <Button 
                 onClick={() => setShowCreateDialog(true)}
                 className="matsu-button shrink-0"

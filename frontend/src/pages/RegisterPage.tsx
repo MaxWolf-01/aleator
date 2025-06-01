@@ -98,7 +98,7 @@ export function RegisterPage() {
             <h1 className="text-3xl font-bold text-[oklch(0.29_0.086_109)]">Aleator</h1>
           </div>
           <p className="text-[oklch(0.51_0.077_74.3)]">
-            Ready to give randomness a meaning?
+            Ready to give randomness meaning?
           </p>
         </div>
 
