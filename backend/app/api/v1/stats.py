@@ -18,7 +18,7 @@ SERVER_START_TIME = time.time()
 # Simple in-memory cache for stats
 _stats_cache: Optional[Dict[str, Any]] = None
 _cache_timestamp: Optional[datetime] = None
-CACHE_DURATION = timedelta(hours=1)
+CACHE_DURATION = timedelta(minutes=10)
 
 
 @router.get("/")
@@ -29,17 +29,6 @@ async def get_stats(session: AsyncSession = Depends(get_db_session)):
     # Check if cache is valid
     now = datetime.now(timezone.utc)
     if _stats_cache and _cache_timestamp and (now - _cache_timestamp) < CACHE_DURATION:
-        # Update only the dynamic fields (uptime and potentially today's stats)
-        uptime_seconds = int(time.time() - SERVER_START_TIME)
-        days = uptime_seconds // 86400
-        hours = (uptime_seconds % 86400) // 3600
-        minutes = (uptime_seconds % 3600) // 60
-        seconds = uptime_seconds % 60
-
-        _stats_cache["server_uptime"] = {
-            "seconds": uptime_seconds,
-            "formatted": f"{days}d {hours}h {minutes}m {seconds}s",
-        }
         return _stats_cache
 
     # Get current time for "today" calculations

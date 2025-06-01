@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     # JWT settings
     jwt_secret_key: str
     jwt_algorithm: str = "HS256"
-    jwt_access_token_expire_minutes: int = 30
+    jwt_access_token_expire_minutes: int = 10080  # 7 days
 
     # Proxy settings
     trusted_hosts: list[str] = ["127.0.0.1"]
