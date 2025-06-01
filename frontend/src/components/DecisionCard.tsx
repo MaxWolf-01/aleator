@@ -369,7 +369,12 @@ export function DecisionCard({
     });
   };
 
-  const handleProbabilityMouseDown = (change: number) => {
+  const handleProbabilityMouseDown = (change: number, event?: React.PointerEvent) => {
+    // Prevent default to avoid any double-triggering
+    if (event) {
+      event.preventDefault();
+    }
+
     // Clear any existing timers first
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
@@ -402,7 +407,12 @@ export function DecisionCard({
     }
   };
 
-  const handleChoiceWeightMouseDown = (choiceId: number, change: number) => {
+  const handleChoiceWeightMouseDown = (choiceId: number, change: number, event?: React.PointerEvent) => {
+    // Prevent default to avoid any double-triggering
+    if (event) {
+      event.preventDefault();
+    }
+
     // Clear any existing timers first
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
@@ -825,34 +835,24 @@ export function DecisionCard({
                 {/* Probability adjustment buttons */}
                 <div className="flex items-center gap-2">
                   <Button
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      handleProbabilityMouseDown(-1);
+                    onPointerDown={(e) => {
+                      handleProbabilityMouseDown(-1, e);
                     }}
-                    onMouseUp={handleProbabilityMouseUp}
-                    onMouseLeave={handleProbabilityMouseUp}
-                    onTouchStart={(e) => {
-                      e.preventDefault();
-                      handleProbabilityMouseDown(-1);
-                    }}
-                    onTouchEnd={handleProbabilityMouseUp}
+                    onPointerUp={handleProbabilityMouseUp}
+                    onPointerLeave={handleProbabilityMouseUp}
+                    onPointerCancel={handleProbabilityMouseUp}
                     size="sm"
                     className="probability-button text-xl font-bold touch-none select-none"
                   >
                     <Minus className="w-4 h-4" />
                   </Button>
                   <Button
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      handleProbabilityMouseDown(1);
+                    onPointerDown={(e) => {
+                      handleProbabilityMouseDown(1, e);
                     }}
-                    onMouseUp={handleProbabilityMouseUp}
-                    onMouseLeave={handleProbabilityMouseUp}
-                    onTouchStart={(e) => {
-                      e.preventDefault();
-                      handleProbabilityMouseDown(1);
-                    }}
-                    onTouchEnd={handleProbabilityMouseUp}
+                    onPointerUp={handleProbabilityMouseUp}
+                    onPointerLeave={handleProbabilityMouseUp}
+                    onPointerCancel={handleProbabilityMouseUp}
                     size="sm"
                     className="probability-button text-xl font-bold touch-none select-none"
                   >
@@ -910,34 +910,24 @@ export function DecisionCard({
                             </span>
                             <div className="flex items-center gap-1">
                               <Button
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  handleChoiceWeightMouseDown(choice.id, -1);
+                                onPointerDown={(e) => {
+                                  handleChoiceWeightMouseDown(choice.id, -1, e);
                                 }}
-                                onMouseUp={handleChoiceWeightMouseUp}
-                                onMouseLeave={handleChoiceWeightMouseUp}
-                                onTouchStart={(e) => {
-                                  e.preventDefault();
-                                  handleChoiceWeightMouseDown(choice.id, -1);
-                                }}
-                                onTouchEnd={handleChoiceWeightMouseUp}
+                                onPointerUp={handleChoiceWeightMouseUp}
+                                onPointerLeave={handleChoiceWeightMouseUp}
+                                onPointerCancel={handleChoiceWeightMouseUp}
                                 size="sm"
                                 className="probability-button text-lg font-bold w-8 h-8 p-0 touch-none select-none"
                               >
                                 −
                               </Button>
                               <Button
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  handleChoiceWeightMouseDown(choice.id, 1);
+                                onPointerDown={(e) => {
+                                  handleChoiceWeightMouseDown(choice.id, 1, e);
                                 }}
-                                onMouseUp={handleChoiceWeightMouseUp}
-                                onMouseLeave={handleChoiceWeightMouseUp}
-                                onTouchStart={(e) => {
-                                  e.preventDefault();
-                                  handleChoiceWeightMouseDown(choice.id, 1);
-                                }}
-                                onTouchEnd={handleChoiceWeightMouseUp}
+                                onPointerUp={handleChoiceWeightMouseUp}
+                                onPointerLeave={handleChoiceWeightMouseUp}
+                                onPointerCancel={handleChoiceWeightMouseUp}
                                 size="sm"
                                 className="probability-button text-lg font-bold w-8 h-8 p-0 touch-none select-none"
                               >
