@@ -162,11 +162,11 @@ class ApiClient {
 
   // Decision endpoints
   async getDecisions() {
-    return this.request('/api/v1/decisions');
+    return this.request('/api/v1/decisions/');
   }
 
   async createDecision(decision: CreateDecisionInput) {
-    return this.request('/api/v1/decisions', {
+    return this.request('/api/v1/decisions/', {
       method: 'POST',
       body: JSON.stringify(decision),
     });
