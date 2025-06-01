@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
@@ -18,21 +19,23 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <Router>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route 
-                path="/" 
-                element={<DashboardPage />} 
-              />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Router>
-        </AuthProvider>
-      </QueryClientProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <Router>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route 
+                  path="/" 
+                  element={<DashboardPage />} 
+                />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Router>
+          </AuthProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

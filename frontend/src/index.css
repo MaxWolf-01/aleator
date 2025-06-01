@@ -103,6 +103,65 @@
   /* Font families */
   --font-ghibli: 'Nunito', ui-sans-serif, system-ui, sans-serif;
   --font-handwritten: 'Caveat', cursive;
+  
+  /* Component-specific colors for inline usage */
+  --color-button-hover: oklch(0.84 0.045 83.6);
+  --color-button-border: oklch(0.78 0.063 80.8);
+  --color-text-subtle: oklch(0.51 0.077 74.3);
+  --color-text-muted: oklch(0.61 0.077 74.3);
+  --color-text-primary: oklch(0.41 0.077 78.9);
+  --color-text-emphasis: oklch(0.29 0.086 109);
+  --color-text-hover: oklch(0.31 0.077 78.9);
+  --color-input-bg: oklch(0.96 0.025 83.6);
+  --color-input-border: oklch(0.74 0.063 80.8);
+  --color-input-focus: oklch(0.71 0.097 111.7);
+  --color-error: oklch(0.54 0.19 29.2);
+  --color-error-light: oklch(0.75 0.12 20);
+  --color-error-bg: oklch(0.54 0.19 29.2 / 0.1);
+  --color-error-border: oklch(0.54 0.19 29.2 / 0.2);
+  --color-success: oklch(0.71 0.097 111.7);
+  --color-success-bg: oklch(0.71 0.097 111.7 / 0.1);
+  --color-success-border: oklch(0.71 0.097 111.7 / 0.2);
+  --color-divider: oklch(0.74 0.063 80.8);
+  --color-shadow: oklch(0.64 0.063 80.8);
+  --color-card-bg: oklch(0.94 0.035 83.6);
+  --color-card-hover: oklch(0.88 0.035 83.6);
+  --color-button-bg: oklch(0.88 0.035 83.6);
+  --color-button-active: oklch(0.71 0.097 111.7);
+  --color-badge-bg: oklch(0.89 0.04 83.6);
+  --color-skeleton: oklch(0.88 0.035 83.6);
+  --color-result-yes: oklch(0.35 0.05 140);
+  --color-result-yes-bg: oklch(0.35 0.05 140 / 0.08);
+  --color-result-yes-hover: oklch(0.35 0.05 140 / 0.15);
+  --color-result-yes-border: oklch(0.65 0.06 140);
+  --color-result-yes-light: oklch(0.95 0.02 140);
+  --color-result-yes-light-hover: oklch(0.98 0.01 140);
+  --color-result-yes-light-border: oklch(0.65 0.08 140);
+  --color-result-no: oklch(0.45 0.05 25);
+  --color-result-no-bg: oklch(0.35 0.05 25 / 0.08);
+  --color-result-no-hover: oklch(0.35 0.05 25 / 0.15);
+  --color-result-no-border: oklch(0.70 0.06 25);
+  --color-result-no-light: oklch(0.96 0.02 25);
+  --color-result-no-light-hover: oklch(0.98 0.01 25);
+  --color-result-no-light-border: oklch(0.70 0.06 25);
+  --color-result-choice: oklch(0.25 0.05 220);
+  --color-result-choice-bg: oklch(0.25 0.05 220 / 0.08);
+  --color-result-choice-hover: oklch(0.25 0.05 220 / 0.15);
+  --color-result-choice-border: oklch(0.67 0.08 220);
+  --color-result-choice-light: oklch(0.95 0.02 220);
+  --color-result-choice-light-hover: oklch(0.98 0.01 220);
+  --color-result-choice-light-border: oklch(0.67 0.08 220);
+  --color-chart-fill: oklch(0.71 0.097 111.7);
+  --color-chart-yes: oklch(0.75 0.12 140);
+  --color-chart-no: oklch(0.75 0.12 20);
+  --color-chart-stroke-light: oklch(0.74 0.063 80.8);
+  --color-chart-stroke-muted: oklch(0.51 0.077 74.3);
+  --color-dropdown-content-bg: oklch(0.94 0.035 83.6);
+  --color-select-content-bg: oklch(0.96 0.025 83.6);
+  --color-toggle-active: oklch(0.71 0.097 111.7);
+  --color-result-multi-1: oklch(0.75 0.12 260);
+  --color-result-multi-2: oklch(0.75 0.12 300);
+  --color-card-gradient-bg: oklch(0.92 0.042 83.6);
 }
 
 /* Studio Ghibli inspired root colors */
@@ -194,6 +253,65 @@
   --sidebar-accent-foreground: oklch(86% .08 220);
   --sidebar-border: oklch(100% 0 0 / 0.12);
   --sidebar-ring: oklch(68% .16 142);
+  
+  /* Component-specific colors for dark mode */
+  --color-button-hover: oklch(0.26 0.05 142);
+  --color-button-border: oklch(0.32 0.08 142);
+  --color-text-subtle: oklch(0.65 0.04 85);
+  --color-text-muted: oklch(0.55 0.04 85);
+  --color-text-primary: oklch(0.85 0.02 85);
+  --color-text-emphasis: oklch(0.92 0.02 85);
+  --color-text-hover: oklch(0.90 0.02 85);
+  --color-input-bg: oklch(0.18 0.02 142);
+  --color-input-border: oklch(0.28 0.08 142);
+  --color-input-focus: oklch(0.68 0.16 142);
+  --color-error: oklch(0.72 0.15 25);
+  --color-error-light: oklch(0.82 0.12 25);
+  --color-error-bg: oklch(0.72 0.15 25 / 0.1);
+  --color-error-border: oklch(0.72 0.15 25 / 0.2);
+  --color-success: oklch(0.68 0.16 142);
+  --color-success-bg: oklch(0.68 0.16 142 / 0.1);
+  --color-success-border: oklch(0.68 0.16 142 / 0.2);
+  --color-divider: oklch(0.28 0.08 142);
+  --color-shadow: oklch(0.18 0.08 142);
+  --color-card-bg: oklch(0.16 0.02 142);
+  --color-card-hover: oklch(0.22 0.04 142);
+  --color-button-bg: oklch(0.22 0.04 142);
+  --color-button-active: oklch(0.68 0.16 142);
+  --color-badge-bg: oklch(0.20 0.03 142);
+  --color-skeleton: oklch(0.22 0.04 142);
+  --color-result-yes: oklch(0.88 0.04 140);
+  --color-result-yes-bg: oklch(0.88 0.04 140 / 0.08);
+  --color-result-yes-hover: oklch(0.88 0.04 140 / 0.15);
+  --color-result-yes-border: oklch(0.38 0.12 140);
+  --color-result-yes-light: oklch(0.28 0.10 140);
+  --color-result-yes-light-hover: oklch(0.32 0.10 140);
+  --color-result-yes-light-border: oklch(0.38 0.12 140);
+  --color-result-no: oklch(0.90 0.04 25);
+  --color-result-no-bg: oklch(0.90 0.04 25 / 0.08);
+  --color-result-no-hover: oklch(0.90 0.04 25 / 0.15);
+  --color-result-no-border: oklch(0.40 0.10 25);
+  --color-result-no-light: oklch(0.30 0.08 25);
+  --color-result-no-light-hover: oklch(0.34 0.08 25);
+  --color-result-no-light-border: oklch(0.40 0.10 25);
+  --color-result-choice: oklch(0.86 0.04 220);
+  --color-result-choice-bg: oklch(0.86 0.04 220 / 0.08);
+  --color-result-choice-hover: oklch(0.86 0.04 220 / 0.15);
+  --color-result-choice-border: oklch(0.36 0.10 220);
+  --color-result-choice-light: oklch(0.26 0.08 220);
+  --color-result-choice-light-hover: oklch(0.30 0.08 220);
+  --color-result-choice-light-border: oklch(0.36 0.10 220);
+  --color-chart-fill: oklch(0.68 0.16 142);
+  --color-chart-yes: oklch(0.75 0.12 140);
+  --color-chart-no: oklch(0.75 0.12 20);
+  --color-chart-stroke-light: oklch(0.28 0.08 142);
+  --color-chart-stroke-muted: oklch(0.55 0.04 85);
+  --color-dropdown-content-bg: oklch(0.16 0.02 142);
+  --color-select-content-bg: oklch(0.18 0.02 142);
+  --color-toggle-active: oklch(0.68 0.16 142);
+  --color-result-multi-1: oklch(0.75 0.12 260);
+  --color-result-multi-2: oklch(0.75 0.12 300);
+  --color-card-gradient-bg: oklch(0.20 0.04 142);
 }
 
 @layer base {
@@ -225,6 +343,11 @@
   min-height: 100vh;
 }
 
+.dark .matsu-app {
+  background: oklch(0.12 0.02 142);
+  color: oklch(0.92 0.02 85);
+}
+
 .matsu-card {
   background: oklch(0.94 0.035 83.6);
   border: 2px solid oklch(0.74 0.063 80.8);
@@ -232,6 +355,12 @@
   box-shadow: 0 2px 0 0 oklch(0.74 0.063 80.8), inset 0 1px 0 0 rgba(255,255,255,0.1);
   transition: all 0.3s ease;
   position: relative;
+}
+
+.dark .matsu-card {
+  background: oklch(0.16 0.02 142);
+  border: 2px solid oklch(0.28 0.08 142);
+  box-shadow: 0 2px 0 0 oklch(0.28 0.08 142), inset 0 1px 0 0 rgba(255,255,255,0.05);
 }
 
 .matsu-card::before {
@@ -256,9 +385,20 @@
   transition: all 0.2s ease;
 }
 
+.dark .matsu-button {
+  background: oklch(0.68 0.16 142);
+  color: oklch(0.12 0.02 142);
+  border: 2px solid oklch(0.58 0.14 142);
+  box-shadow: 0 2px 0 0 oklch(0.58 0.14 142);
+}
+
 .matsu-button:hover {
   transform: translateY(1px);
   box-shadow: 0 1px 0 0 oklch(0.59 0.096 111.8);
+}
+
+.dark .matsu-button:hover {
+  box-shadow: 0 1px 0 0 oklch(0.58 0.14 142);
 }
 
 .matsu-button:active {
@@ -289,6 +429,13 @@
   color: oklch(0.25 0.05 140);
 }
 
+.dark .result-yes {
+  background: oklch(0.28 0.10 140);
+  border-color: oklch(0.38 0.12 140);
+  box-shadow: 0 2px 0 0 oklch(0.38 0.12 140);
+  color: oklch(0.88 0.04 140);
+}
+
 .result-no {
   background: oklch(0.90 0.055 25);
   border-color: oklch(0.80 0.08 25);
@@ -296,11 +443,25 @@
   color: oklch(0.35 0.05 25);
 }
 
+.dark .result-no {
+  background: oklch(0.30 0.08 25);
+  border-color: oklch(0.40 0.10 25);
+  box-shadow: 0 2px 0 0 oklch(0.40 0.10 25);
+  color: oklch(0.90 0.04 25);
+}
+
 .result-choice {
   background: oklch(0.87 0.06 220);
   border-color: oklch(0.77 0.10 220);
   box-shadow: 0 2px 0 0 oklch(0.77 0.10 220);
   color: oklch(0.25 0.05 220);
+}
+
+.dark .result-choice {
+  background: oklch(0.26 0.08 220);
+  border-color: oklch(0.36 0.10 220);
+  box-shadow: 0 2px 0 0 oklch(0.36 0.10 220);
+  color: oklch(0.86 0.04 220);
 }
 
 .roll-button {
@@ -313,9 +474,19 @@
   overflow: hidden;
 }
 
+.dark .roll-button {
+  background: oklch(0.68 0.16 142);
+  border: 2px solid oklch(0.58 0.14 142);
+  box-shadow: 0 2px 0 0 oklch(0.58 0.14 142);
+}
+
 .roll-button:hover {
   transform: translateY(1px);
   box-shadow: 0 1px 0 0 oklch(0.59 0.096 111.8);
+}
+
+.dark .roll-button:hover {
+  box-shadow: 0 1px 0 0 oklch(0.58 0.14 142);
 }
 
 .roll-button:active {
@@ -334,10 +505,22 @@
   min-height: 44px;
 }
 
+.dark .probability-button {
+  background: oklch(0.22 0.04 142);
+  border: 2px solid oklch(0.32 0.08 142);
+  box-shadow: 0 1px 0 0 oklch(0.32 0.08 142);
+  color: oklch(0.85 0.02 85);
+}
+
 .probability-button:hover {
   background: oklch(0.84 0.045 83.6);
   transform: translateY(0.5px);
   box-shadow: 0 0.5px 0 0 oklch(0.78 0.063 80.8);
+}
+
+.dark .probability-button:hover {
+  background: oklch(0.26 0.05 142);
+  box-shadow: 0 0.5px 0 0 oklch(0.32 0.08 142);
 }
 
 .probability-button:active {
@@ -354,10 +537,22 @@
   font-size: 0.75rem;
 }
 
+.dark .matsu-badge {
+  background: oklch(0.20 0.03 142);
+  border: 1px solid oklch(0.30 0.06 142);
+  color: oklch(0.80 0.02 85);
+}
+
 .badge-active {
   background: oklch(0.71 0.097 111.7);
   color: oklch(0.98 0.005 0);
   border: 2px solid oklch(0.59 0.096 111.8);
+}
+
+.dark .badge-active {
+  background: oklch(0.68 0.16 142);
+  color: oklch(0.12 0.02 142);
+  border: 2px solid oklch(0.58 0.14 142);
 }
 
 /* Soft shadow styles for depth */
