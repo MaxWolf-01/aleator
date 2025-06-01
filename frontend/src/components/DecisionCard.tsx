@@ -759,6 +759,7 @@ export function DecisionCard({
                       : decision.binary_decision?.no_text || "No"}
                   </span>
                 </div>
+                <p className="text-sm opacity-90">Alea iacta est 🎲</p>
 
                 {/* Follow-through Tracking */}
                 <div className="mt-4 space-y-3">
